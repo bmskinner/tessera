@@ -2,7 +2,7 @@
 
 This is a tool to visualise the impact of aneuploidy on embryo biopsies in pre-implantation genetic testing.
 
-This is a Shiny app that runs in RStudio.
+Tessera is a Shiny app that runs in RStudio. You will need both R and RStudio installed.
 
 ## Install
 ```
@@ -24,4 +24,5 @@ If you want to run simulations computationally, you can create embryos using the
 ```
 e <- create.embryo(100, 0.1, 0.2)
 take.all.biopsies(e, 5)
+# Output is a vector of the number of aneuploid cells from all possible biopsies
 ```

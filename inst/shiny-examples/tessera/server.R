@@ -2,11 +2,9 @@
 library(shiny)
 library(shinythemes)
 library(plotly)
-# source("tessera.R")
 
 # Define the server
 function(input, output, session){
-
 
   calculateData = reactive({
     create.embryo(n.cells        = input$n.cells,

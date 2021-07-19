@@ -4,7 +4,7 @@
 \alias{runTessera}
 \title{Run the Tessera Shiny app}
 \usage{
-runTessera()
+runTessera(...)
 }
 \description{
 Launches a webview containing the embryo model

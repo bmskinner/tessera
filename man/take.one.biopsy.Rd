@@ -7,12 +7,12 @@
 take.one.biopsy(embryo, n.sampled.cells, index.cell)
 }
 \arguments{
-\item{embryo}{an embryo as created by `create.embryo`}
+\item{embryo}{an embryo as created by \code{create.embryo}}
 
 \item{n.sampled.cells}{the number of cells to biopsy}
 
 \item{index.cell}{the index of the cell to begin biopsying. Must be a value
-between 1 and `nrow(embryo)`}
+between 1 and \code{nrow(embryo)}}
 }
 \value{
 the number of aneuploid cells in the biopsy

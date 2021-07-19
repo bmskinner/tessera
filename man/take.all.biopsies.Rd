@@ -7,7 +7,7 @@
 take.all.biopsies(embryo, n.cells.per.sample)
 }
 \arguments{
-\item{embryo}{an embryo as created by `create.embryo`}
+\item{embryo}{an embryo as created by \code{create.embryo}}
 
 \item{n.cells.per.sample}{the number of cells to take in each biopsy}
 }

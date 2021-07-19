@@ -1,7 +1,9 @@
-# Run the Shiny app
-
+#' Run the Tessera Shiny app
+#'
+#' Launches a webview containing the embryo model
+#'
 #' @export
-runModel<- function() {
+runTessera<- function() {
   appDir <- system.file("shiny-examples", "tessera", package = "tessera")
   if (appDir == "") {
     stop("Could not find example directory. Try re-installing `tessera`.", call. = FALSE)

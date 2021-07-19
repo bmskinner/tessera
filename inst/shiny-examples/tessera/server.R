@@ -15,11 +15,11 @@ function(input, output, session){
   })
 
   output$biopsyPlot = renderPlotly({
-    d = calculateData()
-    plot_ly(x=d$x, y=d$y, z=d$z,
+    embryo = calculateData()
+    plot_ly(x=embryo$x, y=embryo$y, z=embryo$z,
             type="scatter3d",
             mode="markers",
-            color=d$isSeed,
+            color=embryo$isSeed,
             colors = c("#00FF00", "#FF0000")) %>%
       layout(showlegend = FALSE) %>%
       layout(title = "Click and drag to rotate the chart")
@@ -27,8 +27,8 @@ function(input, output, session){
 
   output$iterationSummary = renderPlot({
 
-    d = calculateData()
-    result = make.samples(d, input$n.samples)
+    embryo = calculateData()
+    result = take.all.biopsies(embryo, input$n.samples)
 
     n.euploids = length(result[result==0])
     n.aneuploids  = length(result[result==input$n.samples])
@@ -46,7 +46,7 @@ function(input, output, session){
          ylim = c(0,1),
          freq=F,
          main = paste("Biopsying",input$n.samples,
-                      "cells from this blastocyst"))
+                      "cells from this embryo"))
     axis(1, at = seq(0, input$n.samples, 1))
     text( paste0(format(euploid.ratio, nsmall=1, digits = 3),"%\nall euploid"), x=0, y=0.9)
     text( paste0(format(mosaic.ratio, nsmall=1, digits = 3),"%\nmosaic"), x=input$n.samples/2, y=0.9)

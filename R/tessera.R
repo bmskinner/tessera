@@ -1,8 +1,8 @@
-# Fibonacci lattice model
+# Create an embryo using the Fibonacci lattice model
 # library(assertthat)
 
 # The number of cells to be considered neighbours to a given cell
-N_NEIGHBOURS=6
+.N_NEIGHBOURS=6
 
 #' Create a sphere of evenly spaced cells
 #'
@@ -10,8 +10,7 @@ N_NEIGHBOURS=6
 #'
 #' @return a data frame with coordinates
 #'
-#' @examples
-create.blank.sphere = function(n.points){
+.create.blank.sphere = function(n.points){
   # Make a sphere of evenly spaced points using the Fibonacci spiral
   indices = seq(0, n.points-1, 1)+0.5
   phi = acos(pmin(pmax( 1-2*indices/n.points,-1.0),1.0)) # constrain to avoid rounding errors
@@ -23,12 +22,12 @@ create.blank.sphere = function(n.points){
   d = as.data.frame(cbind(x, y, z))
 
   # Create distance matrix for each point
-  # Set the N_NEIGHBOURS closest points to be neighbours
+  # Set the .N_NEIGHBOURS closest points to be neighbours
   for(i in 1:nrow(d)){
     dist = sqrt( (d$x-x[i])**2 + (d$y-y[i])**2 + (d$z-z[i])**2) # distance between points
     d[[paste0("d", i)]] = dist # create a column to store the distances
     # A point is a neighbour if it is not this point, and it is in the list of closest points
-    d[[paste0("isNeighbour", i)]] = dist > 0 & dist <= max(head(sort(dist), n=N_NEIGHBOURS+1))
+    d[[paste0("isNeighbour", i)]] = dist > 0 & dist <= max(head(sort(dist), n=.N_NEIGHBOURS+1))
   }
   d$isSeed = FALSE
 
@@ -40,7 +39,7 @@ create.blank.sphere = function(n.points){
 # d - the blastocyst
 # index - the cell to test
 # Returns true if any of the closest cells are aneuploid
-has.adjacent.aneuploid = function(d, index){
+.has.adjacent.aneuploid = function(d, index){
   adj.list = d[[paste0("isNeighbour", index)]]
   return(any(adj.list & d$isSeed))
 }
@@ -54,12 +53,10 @@ has.adjacent.aneuploid = function(d, index){
 #' @param  seed.sample the index of the cell to begin biopsying
 #'
 #' @return the number of potential seeds
-#'
-#' @examples
-count.empty.blocks = function(d){
+.count.empty.blocks = function(d){
   n = 0
   for(i in 1:nrow(d)){
-    if(!d$isSeed[i] & !has.adjacent.aneuploid(d, i)) n = n+1
+    if(!d$isSeed[i] & !.has.adjacent.aneuploid(d, i)) n = n+1
   }
   return(n)
 }
@@ -74,13 +71,12 @@ count.empty.blocks = function(d){
 #' @param dispersion the dispersion of the aneuploid cells (0-1)
 #'
 #' @return an embryo data frame
-#' @export
 #'
 #' @examples
 #' embryo <- create.embryo(20, 0.1, 0.9)
 create.embryo = function(n.cells, prop.aneuploid, dispersion){
 
-  d = create.blank.sphere(n.cells)
+  d = .create.blank.sphere(n.cells)
 
   # Shortcut the easy cases
   if(prop.aneuploid==0) return(d)
@@ -104,13 +100,13 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   # We can disperse up to a certain number of initial blocks with
   # no aneuploid neighbours. After this, every cell will have at least
   # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
-  initial.blocks = max(1,floor(n.cells/N_NEIGHBOURS))
+  initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
 
   # Disperse seeds as much as possible
   while(initial.blocks>0 & n.to.make>0){
     seed = sample.int(n.cells, 1)
     if(d$isSeed[seed]) next
-    if(has.adjacent.aneuploid(d, seed)) next # spread seeds out
+    if(.has.adjacent.aneuploid(d, seed)) next # spread seeds out
     d$isSeed[seed] = T
     n.to.make = n.to.make-1L
     initial.blocks = initial.blocks-1L
@@ -131,7 +127,7 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
     if(d$isSeed[seed]) next # skip cells already aneuploid
-    if(!has.adjacent.aneuploid(d, seed)) next # only grow next to existing aneuploid
+    if(!.has.adjacent.aneuploid(d, seed)) next # only grow next to existing aneuploid
     d$isSeed[seed] = T
     n.to.make = n.to.make-1
   }
@@ -140,24 +136,30 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   return(d)
 }
 
-#' Take a sample from a blastocyst.
+#' Take a sample from an embryo
 #'
 #' The cell at the given index is taken,
 #' plus the closest n neighbouring cells where n = n.sampled.cells-1.
 #'
-#' @param d the embryo
+#' @param embryo an embryo as created by `create.embryo`
 #' @param n.sampled.cells the number of cells to biopsy
-#' @param  seed.sample the index of the cell to begin biopsying
+#' @param index.cell the index of the cell to begin biopsying. Must be a value
+#'  between 1 and `nrow(embryo)`
 #'
-#' @return a vector of the number of aneuploid cells in each biopsy
+#' @return the number of aneuploid cells in the biopsy
 #'
 #' @examples
-sample.blastocyst = function(d, n.sampled.cells, seed.sample){
+#' e <- create.embryo(100, 0.1, 0.1)
+#' take.one.biopsy(e, 5, 1)
+take.one.biopsy = function(embryo, n.sampled.cells, index.cell){
+  if(index.cell < 1 | index.cell > nrow(embryo)){
+    warning(paste("index.cell (", index.cell ,") must be between 1 and", nrow(embryo)))
+    return()
+  }
+  sample.list = embryo[[paste0("d", index.cell)]]
 
-  sample.list = d[[paste0("d", seed.sample)]]
-
-  d$isSampled = d[[paste0("d", seed.sample)]] <= max(head(sort(sample.list), n=n.sampled.cells))
-  return(d)
+  embryo$isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
+  return(sum(embryo[embryo$isSampled,]$isSeed))
 }
 
 
@@ -166,18 +168,20 @@ sample.blastocyst = function(d, n.sampled.cells, seed.sample){
 #' Take all possible biopsies of the given size from the given
 #' embryo
 #'
-#' @param embryo the embryo
+#' @param embryo an embryo as created by `create.embryo`
 #' @param n.cells.per.sample the number of cells to take in each biopsy
 #'
-#' @return a vector of the number of aneuploid cells in each biopsy
+#' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export
 #'
 #' @examples
-make.samples = function(embryo, n.cells.per.sample){
+#' e <- create.embryo(100, 0.1, 0.1)
+#' take.all.biopsies(e, 5)
+take.all.biopsies = function(embryo, n.cells.per.sample){
   result = c()
   for(i in 1:nrow(embryo)){ # sample each cell in turn, so we get every cell
-    f = sample.blastocyst(embryo, n.cells.per.sample, i)
-    result = c(result, sum(f[f$isSampled,]$isSeed))
+    f = take.one.biopsy(embryo, n.cells.per.sample, i)
+    result = c(result, f)
   }
   return(result)
 }

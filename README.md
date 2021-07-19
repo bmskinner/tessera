@@ -10,11 +10,18 @@ install.packages("devtools")
 devtools::install_github("bmskinner/tessera")
 ```
 
-## Run
+## Run the web app
 
 ```
 library(tessera)
 runTessera()
 ```
 
-If you want to run simulations computationally, you can create embryos using the `create.embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `take.all.biopsies` function
+## Compute values yourself
+
+If you want to run simulations computationally, you can create embryos using the `create.embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `take.all.biopsies` function:
+
+```
+e <- create.embryo(100, 0.1, 0.2)
+take.all.biopsies(e, 5)
+```

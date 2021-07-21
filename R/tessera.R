@@ -145,6 +145,7 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
 #' @param n.sampled.cells the number of cells to biopsy
 #' @param index.cell the index of the cell to begin biopsying. Must be a value
 #'  between 1 and \code{nrow(embryo)}
+#'  @param chromosome the chromosome to test
 #'
 #' @return the number of aneuploid cells in the biopsy
 #'
@@ -181,6 +182,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #'
 #' @param embryo an embryo as created by \code{create.embryo}
 #' @param n.cells.per.sample the number of cells to take in each biopsy
+#' @param chromosome the chromosome to test
 #'
 #' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export

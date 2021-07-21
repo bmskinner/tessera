@@ -11,7 +11,7 @@ set.aneuploid(embryo, cell.index, chromosome)
 
 \item{cell.index}{the cell to affect}
 
-\item{chromosome}{the chromosome to make aneuploid}
+\item{chromosome}{the chromosome to make aneuploid (1-25)}
 }
 \value{
 the modified embryo

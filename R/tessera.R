@@ -91,6 +91,19 @@ is.aneuploid = function(embryo, cell.index, chromosome){
 }
 
 
+#' count the number of aneuploid cells for the given chromosome
+#'
+#' @param embryo the embryo
+#' @param chromosome the chromosome to test
+#'
+#' @return the number of aneuploid cells
+#' @export
+#'
+#' @examples
+count.aneuploid = function(embryo, chromosome){
+  return(sum(bitwAnd(embryo$isAneuploid, 2^(chromosome-1))==chromosome))
+}
+
 #' Create an embryo
 #'
 #' A sphere of cells is created with the given proportion of aneuploidies.
@@ -197,11 +210,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 
   isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
 
-  # Expecting isAneuploid to be a 32bit int. Each bit is one chr
-  chrBit = 2^(chromosome-1) # bitmask on chromsome number
-  mask = bitwAnd(embryo[isSampled,]$isAneuploid, chrBit)
-
-  return(sum(mask))
+  return(count.aneuploid(e[isSampled,], chromosome))
 }
 
 

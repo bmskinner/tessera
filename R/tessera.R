@@ -61,6 +61,36 @@
   return(n)
 }
 
+#' Set a cell to contain an aneuploid chromosome
+#'
+#' @param embryo the embryo
+#' @param cell.index the cell to affect
+#' @param chromosome the chromosome to make aneuploid (1-25)
+#'
+#' @return the modified embryo
+#' @export
+#'
+#' @examples
+set.aneuploid = function(embryo, cell.index, chromosome){
+  embryo$isAneuploid[cell.index] = bitwOr(embryo$isAneuploid[cell.index], 2^(chromosome-1))
+  return(embryo)
+}
+
+#' Test if the given chromosome in the given cell is aneuploid
+#'
+#' @param embryo the embryo
+#' @param cell.index the cell to test
+#' @param chromosome the chromosome to test
+#'
+#' @return true if the chromosome is aneuploid, false otherwise
+#' @export
+#'
+#' @examples
+is.aneuploid = function(embryo, cell.index, chromosome){
+  return(bitwAnd(embryo$isAneuploid[cell.index], 2^(chromosome-1))==chromosome)
+}
+
+
 #' Create an embryo
 #'
 #' A sphere of cells is created with the given proportion of aneuploidies.

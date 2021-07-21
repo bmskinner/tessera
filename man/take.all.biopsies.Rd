@@ -4,12 +4,14 @@
 \alias{take.all.biopsies}
 \title{Find the number of aneuploid cells}
 \usage{
-take.all.biopsies(embryo, n.cells.per.sample)
+take.all.biopsies(embryo, n.cells.per.sample, chromosome)
 }
 \arguments{
 \item{embryo}{an embryo as created by \code{create.embryo}}
 
 \item{n.cells.per.sample}{the number of cells to take in each biopsy}
+
+\item{chromosome}{the chromosome to test}
 }
 \value{
 an integer vector of the number of aneuploid cells in each biopsy

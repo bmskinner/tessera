@@ -151,15 +151,26 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
 #' @examples
 #' e <- create.embryo(100, 0.1, 0.1)
 #' take.one.biopsy(e, 5, 1)
-take.one.biopsy = function(embryo, n.sampled.cells, index.cell){
+take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
   if(index.cell < 1 | index.cell > nrow(embryo)){
     warning(paste("index.cell (", index.cell ,") must be between 1 and", nrow(embryo)))
     return()
   }
+
+  if(chromosome < 1 | chromosome>31){
+    warning(paste("Chromosome (", chromosome ,") must be between 1 and 31"))
+    return()
+  }
+
   sample.list = embryo[[paste0("d", index.cell)]]
 
-  embryo$isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
-  return(sum(embryo[embryo$isSampled,]$isAneuploid>0))
+  isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
+
+  # Expecting isAneuploid to be a 32bit int. Each bit is one chr
+  chrBit = 2^(chromosome-1) # bitmask on chromsome number
+  mask = bitwAnd(embryo[isSampled,]$isAneuploid, chrBit)
+
+  return(sum(mask))
 }
 
 
@@ -177,10 +188,16 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell){
 #' @examples
 #' e <- create.embryo(100, 0.1, 0.1)
 #' take.all.biopsies(e, 5)
-take.all.biopsies = function(embryo, n.cells.per.sample){
+take.all.biopsies = function(embryo, n.cells.per.sample, chromosome){
+
+  if(chromosome < 1 | chromosome>31){
+    warning(paste("Chromosome (", chromosome ,") must be between 1 and 31"))
+    return()
+  }
+
   result = c()
   for(i in 1:nrow(embryo)){ # sample each cell in turn, so we get every cell
-    f = take.one.biopsy(embryo, n.cells.per.sample, i)
+    f = take.one.biopsy(embryo, n.cells.per.sample, i, chromosome)
     result = c(result, f)
   }
   return(result)

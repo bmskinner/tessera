@@ -4,7 +4,7 @@
 \alias{take.one.biopsy}
 \title{Take a sample from an embryo}
 \usage{
-take.one.biopsy(embryo, n.sampled.cells, index.cell)
+take.one.biopsy(embryo, n.sampled.cells, index.cell, chromosome)
 }
 \arguments{
 \item{embryo}{an embryo as created by \code{create.embryo}}
@@ -12,7 +12,8 @@ take.one.biopsy(embryo, n.sampled.cells, index.cell)
 \item{n.sampled.cells}{the number of cells to biopsy}
 
 \item{index.cell}{the index of the cell to begin biopsying. Must be a value
-between 1 and \code{nrow(embryo)}}
+between 1 and \code{nrow(embryo)}
+@param chromosome the chromosome to test}
 }
 \value{
 the number of aneuploid cells in the biopsy

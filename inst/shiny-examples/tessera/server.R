@@ -17,7 +17,7 @@ function(input, output, session){
     plot_ly(x=embryo$x, y=embryo$y, z=embryo$z,
             type="scatter3d",
             mode="markers",
-            color=embryo$isAneuploid,
+            color=as.factor(embryo$isAneuploid),
             colors = c("#00FF00", "#FF0000")) %>%
       layout(showlegend = FALSE) %>%
       layout(title = "Click and drag to rotate the chart")

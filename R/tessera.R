@@ -29,7 +29,7 @@
     # A point is a neighbour if it is not this point, and it is in the list of closest points
     d[[paste0("isNeighbour", i)]] = dist > 0 & dist <= max(head(sort(dist), n=.N_NEIGHBOURS+1))
   }
-  d$isSeed = FALSE
+  d$isAneuploid = FALSE
 
   # assertthat::assert_that(nrow(d)==n.points, msg=paste("Expected", n.points, "cells, found", nrow(d)))
   return(d)
@@ -41,7 +41,7 @@
 # Returns true if any of the closest cells are aneuploid
 .has.adjacent.aneuploid = function(d, index){
   adj.list = d[[paste0("isNeighbour", index)]]
-  return(any(adj.list & d$isSeed))
+  return(any(adj.list & d$isAneuploid))
 }
 
 #' Count the number of potential seed locations
@@ -56,7 +56,7 @@
 .count.empty.blocks = function(d){
   n = 0
   for(i in 1:nrow(d)){
-    if(!d$isSeed[i] & !.has.adjacent.aneuploid(d, i)) n = n+1
+    if(!d$isAneuploid[i] & !.has.adjacent.aneuploid(d, i)) n = n+1
   }
   return(n)
 }
@@ -82,7 +82,7 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   if(prop.aneuploid==0) return(d)
 
   if(prop.aneuploid==1){
-    d$isSeed=T
+    d$isAneuploid=T
     return(d)
   }
 
@@ -105,9 +105,9 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   # Disperse seeds as much as possible
   while(initial.blocks>0 & n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isSeed[seed]) next
+    if(d$isAneuploid[seed]) next
     if(.has.adjacent.aneuploid(d, seed)) next # spread seeds out
-    d$isSeed[seed] = T
+    d$isAneuploid[seed] = T
     n.to.make = n.to.make-1L
     initial.blocks = initial.blocks-1L
   }
@@ -115,24 +115,24 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   # When all dispersed seeds have been added, add the remaining seeds randomly
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isSeed[seed]) next
-    d$isSeed[seed] = T
+    if(d$isAneuploid[seed]) next
+    d$isAneuploid[seed] = T
     n.to.make = n.to.make-1L
   }
-  # assertthat::assert_that(sum(d$isSeed)==n.seeds,
-                          # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isSeed)))
+  # assertthat::assert_that(sum(d$isAneuploid)==n.seeds,
+                          # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isAneuploid)))
 
   # Grow the seeds into neighbouring cells for remaining aneuploid cells
   n.to.make = n.aneuploid - n.seeds
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isSeed[seed]) next # skip cells already aneuploid
+    if(d$isAneuploid[seed]) next # skip cells already aneuploid
     if(!.has.adjacent.aneuploid(d, seed)) next # only grow next to existing aneuploid
-    d$isSeed[seed] = T
+    d$isAneuploid[seed] = T
     n.to.make = n.to.make-1
   }
-  # assertthat::assert_that(sum(d$isSeed)==n.aneuploid,
-  #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", sum(d$isSeed)))
+  # assertthat::assert_that(sum(d$isAneuploid)==n.aneuploid,
+  #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", sum(d$isAneuploid)))
   return(d)
 }
 
@@ -159,7 +159,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell){
   sample.list = embryo[[paste0("d", index.cell)]]
 
   embryo$isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
-  return(sum(embryo[embryo$isSampled,]$isSeed))
+  return(sum(embryo[embryo$isSampled,]$isAneuploid))
 }
 
 

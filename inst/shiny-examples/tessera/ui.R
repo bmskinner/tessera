@@ -35,6 +35,13 @@ fluidPage(theme = shinytheme("lumen"),
                              value = 5,
                              min= 1,
                              max = 20,
+                             step = 1),
+
+                numericInput(inputId = "chr.to.view",
+                             label = strong("Chromosome to view"),
+                             value = 1,
+                             min= 1,
+                             max = 31,
                              step = 1)
 
 

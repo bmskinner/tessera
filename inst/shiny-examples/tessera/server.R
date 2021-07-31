@@ -7,17 +7,25 @@ library(plotly)
 function(input, output, session){
 
   calculateData = reactive({
+    # create.embryo(n.cells        = input$n.cells,
+    #               prop.aneuploid = rep(input$proportion, 5),
+    #               dispersion     = rep(input$dispersal, 5))
     create.embryo(n.cells        = input$n.cells,
-                  prop.aneuploid = input$proportion,
-                  dispersion     = input$dispersal)
+                  prop.aneuploid = seq(0, 1, 0.05),
+                  dispersion     = seq(1, 0, -0.05))
   })
 
   output$biopsyPlot = renderPlotly({
     embryo = calculateData()
+
+    colours = factor(bitwAnd(embryo$isAneuploid, 2^(input$chr.to.view-1)),
+                        levels = c(0, 2^(input$chr.to.view-1)))
+    print(colours)
+
     plot_ly(x=embryo$x, y=embryo$y, z=embryo$z,
             type="scatter3d",
             mode="markers",
-            color=as.factor(embryo$isAneuploid),
+            color=colours,
             colors = c("#00FF00", "#FF0000")) %>%
       layout(showlegend = FALSE) %>%
       layout(title = "Click and drag to rotate the chart")
@@ -26,7 +34,7 @@ function(input, output, session){
   output$iterationSummary = renderPlot({
 
     embryo = calculateData()
-    result = take.all.biopsies(embryo, input$n.samples)
+    result = take.all.biopsies(embryo, input$n.samples, input$chr.to.view)
 
     n.euploids = length(result[result==0])
     n.aneuploids  = length(result[result==input$n.samples])
@@ -43,7 +51,7 @@ function(input, output, session){
          xaxt="n",
          ylim = c(0,1),
          freq=F,
-         main = paste("Biopsying",input$n.samples,
+         main = paste("Chr", input$chr.to.view, ": Biopsying",input$n.samples,
                       "cells from this embryo"))
     axis(1, at = seq(0, input$n.samples, 1))
     text( paste0(format(euploid.ratio, nsmall=1, digits = 3),"%\nall euploid"), x=0, y=0.9)

@@ -22,5 +22,5 @@ embryo
 }
 \examples{
 e <- create.embryo(100, 0.1, 0.1)
-take.all.biopsies(e, 5)
+take.all.biopsies(e, 5, 1)
 }

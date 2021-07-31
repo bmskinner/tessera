@@ -4,14 +4,14 @@
 \alias{create.embryo}
 \title{Create an embryo}
 \usage{
-create.embryo(n.cells, prop.aneuploid, dispersion)
+create.embryo(n.cells, prop.aneuploids, dispersions)
 }
 \arguments{
 \item{n.cells}{the number of cells in the embryo}
 
-\item{prop.aneuploid}{the proportion of aneuploid cells (0-1)}
+\item{prop.aneuploid}{the proportion vector of aneuploid cells (0-1) per chromosome}
 
-\item{dispersion}{the dispersion of the aneuploid cells (0-1)}
+\item{dispersion}{the dispersion vector of the aneuploid cells (0-1)}
 }
 \value{
 an embryo data frame
@@ -21,5 +21,5 @@ A sphere of cells is created with the given proportion of aneuploidies.
 Aneuploid cells are either adjacent or dispersed
 }
 \examples{
-embryo <- create.embryo(20, 0.1, 0.9)
+embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)
 }

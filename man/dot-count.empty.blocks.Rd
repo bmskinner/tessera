@@ -4,14 +4,12 @@
 \alias{.count.empty.blocks}
 \title{Count the number of potential seed locations}
 \usage{
-.count.empty.blocks(d)
+.count.empty.blocks(d, chromosome)
 }
 \arguments{
 \item{d}{the embryo}
 
-\item{n.sampled.cells}{the number of cells to biopsy}
-
-\item{seed.sample}{the index of the cell to begin biopsying}
+\item{chromosome}{the chromosome to test}
 }
 \value{
 the number of potential seeds

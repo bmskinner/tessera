@@ -38,10 +38,13 @@
 # Test if any of the neighbouring cells have an aneuploidy
 # d - the blastocyst
 # index - the cell to test
+# chromosome - the chromosome to test
 # Returns true if any of the closest cells are aneuploid
-.has.adjacent.aneuploid = function(d, index){
+.has.adjacent.aneuploid = function(d, index, chromosome){
   adj.list = d[[paste0("isNeighbour", index)]]
-  return(any(adj.list & d$isAneuploid>0))
+  isAenu = bitwAnd(d$isAneuploid, .bit.value(chromosome))==.bit.value(chromosome)
+
+  return(any(adj.list & isAenu))
 }
 
 #' Count the number of potential seed locations
@@ -49,14 +52,13 @@
 #' Cells that are not adjacent to a seed
 #'
 #' @param d the embryo
-#' @param n.sampled.cells the number of cells to biopsy
-#' @param  seed.sample the index of the cell to begin biopsying
+#' @param chromosome the chromosome to test
 #'
 #' @return the number of potential seeds
-.count.empty.blocks = function(d){
+.count.empty.blocks = function(d, chromosome){
   n = 0
   for(i in 1:nrow(d)){
-    if(d$isAneuploid[i]>0 & !.has.adjacent.aneuploid(d, i)) n = n+1
+    if(d$isAneuploid[i]>0 & !.has.adjacent.aneuploid(d, i, chromosome)) n = n+1
   }
   return(n)
 }
@@ -72,7 +74,12 @@
 #'
 #' @examples
 set.aneuploid = function(embryo, cell.index, chromosome){
-  embryo$isAneuploid[cell.index] = bitwOr(embryo$isAneuploid[cell.index], 2^(chromosome-1))
+  if(chromosome < 1 | chromosome>31) {
+    warning("Chromosome must be in range 1-31")
+    return(embryo)
+  }
+  embryo$isAneuploid[cell.index] = bitwOr(embryo$isAneuploid[cell.index],
+                                          .bit.value(chromosome))
   return(embryo)
 }
 
@@ -87,7 +94,23 @@ set.aneuploid = function(embryo, cell.index, chromosome){
 #'
 #' @examples
 is.aneuploid = function(embryo, cell.index, chromosome){
-  return(bitwAnd(embryo$isAneuploid[cell.index], 2^(chromosome-1))==chromosome)
+  if(chromosome < 1 | chromosome>31) {
+    warning("Chromosome must be in range 1-31")
+    return(F)
+  }
+  return(bitwAnd(embryo$isAneuploid[cell.index],
+                 .bit.value(chromosome)) == .bit.value(chromosome))
+}
+
+#' Get the bit value for the given chromosome
+#'
+#' @param chromosome the chromosome to test
+#'
+#' @return the bit value
+#'
+#' @examples
+.bit.value = function(chromosome){
+  return(2^(chromosome-1))
 }
 
 
@@ -101,7 +124,8 @@ is.aneuploid = function(embryo, cell.index, chromosome){
 #'
 #' @examples
 count.aneuploid = function(embryo, chromosome){
-  return(sum(bitwAnd(embryo$isAneuploid, 2^(chromosome-1))==chromosome))
+  return(sum(bitwAnd(embryo$isAneuploid,
+                     .bit.value(chromosome)) == .bit.value(chromosome)))
 }
 
 #' Create an embryo
@@ -110,24 +134,70 @@ count.aneuploid = function(embryo, chromosome){
 #' Aneuploid cells are either adjacent or dispersed
 #'
 #' @param n.cells the number of cells in the embryo
-#' @param prop.aneuploid the proportion of aneuploid cells (0-1)
-#' @param dispersion the dispersion of the aneuploid cells (0-1)
+#' @param prop.aneuploid the proportion vector of aneuploid cells (0-1) per chromosome
+#' @param dispersion the dispersion vector of the aneuploid cells (0-1)
 #'
 #' @return an embryo data frame
 #'
 #' @examples
-#' embryo <- create.embryo(20, 0.1, 0.9)
-create.embryo = function(n.cells, prop.aneuploid, dispersion){
+#' embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)
+create.embryo = function(n.cells, prop.aneuploids, dispersions){
 
-  d = .create.blank.sphere(n.cells)
+  if(length(prop.aneuploids)>32){
+    warning("Trying to set aneuploidies for more than 32 chromosomes")
+    return()
+  }
+
+  if(length(dispersions)>32){
+    warning("Trying to set dispersions for more than 32 chromosomes")
+    return()
+  }
+  if(length(dispersions)!=length(prop.aneuploids)){
+    warning("Must have the same dimensions for input vectors")
+    return()
+  }
+
+  embryo = .create.blank.sphere(n.cells)
+
+  for(chr in 1:length(prop.aneuploids)){
+    embryo = set.aneuploidies(embryo,
+                         chr,
+                         prop.aneuploids[chr],
+                         dispersions[chr])
+  }
+
+  return(embryo)
+}
+
+#' Set aneuploidies in an embryo
+#'
+#' A sphere of cells is created with the given proportion of aneuploidies.
+#' Aneuploid cells are either adjacent or dispersed
+#'
+#' @param embryo an embryo as created by \code{create.embryo}
+#' @param chromosome the chromosome to set aneuploidies for
+#' @param prop.aneuploid the proportion of aneuploid cells (0-1)
+#' @param dispersion the dispersion of the aneuploid cells (0-1)
+#'
+#' @return the embryo with aneuploidies
+#'
+#' @examples
+#' embryo <- set.aneuploidies(embryo, 1, 0.1, 0.9)
+set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
 
   # Shortcut the easy cases
-  if(prop.aneuploid==0) return(d)
+  if(prop.aneuploid==0) return(embryo)
 
   if(prop.aneuploid==1){
-    d$isAneuploid=1
-    return(d)
+    for(i in 1:nrow(embryo)){
+      embryo = set.aneuploid(embryo, i, chromosome)
+    }
+    return(embryo)
   }
+
+  n.cells = nrow(embryo)
+
+  cat("Embryo has", n.cells, "cells\n")
 
   # We must have an integer value of at least one aneuploid cell
   n.aneuploid = ceiling(max(1, n.cells * prop.aneuploid))
@@ -145,38 +215,44 @@ create.embryo = function(n.cells, prop.aneuploid, dispersion){
   # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
   initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
 
+  cat("Creating", initial.blocks, "initial seeds\n")
+
   # Disperse seeds as much as possible
   while(initial.blocks>0 & n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isAneuploid[seed]>0) next
-    if(.has.adjacent.aneuploid(d, seed)) next # spread seeds out
-    d$isAneuploid[seed] = 1
+    if(is.aneuploid(embryo, seed, chromosome)) next
+    if(.has.adjacent.aneuploid(embryo, seed, chromosome)) next # spread seeds out
+    embryo = set.aneuploid(embryo, seed, chromosome)
     n.to.make = n.to.make-1L
     initial.blocks = initial.blocks-1L
   }
 
+  cat("Creating", n.to.make, "supplementary seeds\n")
+
   # When all dispersed seeds have been added, add the remaining seeds randomly
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isAneuploid[seed]>0) next
-    d$isAneuploid[seed] = 1
+    if(is.aneuploid(embryo, seed, chromosome)) next
+    embryo = set.aneuploid(embryo, seed, chromosome)
     n.to.make = n.to.make-1L
   }
   # assertthat::assert_that(sum(d$isAneuploid)==n.seeds,
-                          # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isAneuploid)))
+  # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isAneuploid)))
 
   # Grow the seeds into neighbouring cells for remaining aneuploid cells
+
   n.to.make = n.aneuploid - n.seeds
+  cat("Placing ", n.to.make, "final aneuploid cells\n")
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(d$isAneuploid[seed]>0) next # skip cells already aneuploid
-    if(!.has.adjacent.aneuploid(d, seed)) next # only grow next to existing aneuploid
-    d$isAneuploid[seed] = 1
+    if(is.aneuploid(embryo, seed, chromosome)) next # skip cells already aneuploid
+    if(!.has.adjacent.aneuploid(embryo, seed, chromosome)) next # only grow next to existing aneuploid
+    embryo = set.aneuploid(embryo, seed, chromosome)
     n.to.make = n.to.make-1
   }
   # assertthat::assert_that(sum(d$isAneuploid)==n.aneuploid,
   #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", sum(d$isAneuploid)))
-  return(d)
+  return(embryo)
 }
 
 #' Take a sample from an embryo
@@ -210,7 +286,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 
   isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
 
-  return(count.aneuploid(e[isSampled,], chromosome))
+  return(count.aneuploid(embryo[isSampled,], chromosome))
 }
 
 
@@ -228,7 +304,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #'
 #' @examples
 #' e <- create.embryo(100, 0.1, 0.1)
-#' take.all.biopsies(e, 5)
+#' take.all.biopsies(e, 5, 1)
 take.all.biopsies = function(embryo, n.cells.per.sample, chromosome){
 
   if(chromosome < 1 | chromosome>31){

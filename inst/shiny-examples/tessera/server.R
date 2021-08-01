@@ -7,27 +7,51 @@ library(plotly)
 function(input, output, session){
 
   calculateData = reactive({
-    # create.embryo(n.cells        = input$n.cells,
-    #               prop.aneuploid = rep(input$proportion, 5),
-    #               dispersion     = rep(input$dispersal, 5))
+
+    all.chr = input$aneu.type=="All chrs"
+
+    props = if(all.chr) rep(input$proportion, times=22) else input$proportion
+    disps = if(all.chr) rep(input$dispersal, times=22)  else input$dispersal
+
     create.embryo(n.cells        = input$n.cells,
-                  prop.aneuploid = seq(0, 1, 0.05),
-                  dispersion     = seq(1, 0, -0.05))
+                  prop.aneuploid = props,
+                  dispersion     = disps)
   })
 
   output$biopsyPlot = renderPlotly({
     embryo = calculateData()
 
-    colours = factor(bitwAnd(embryo$isAneuploid, 2^(input$chr.to.view-1)),
-                        levels = c(0, 2^(input$chr.to.view-1)))
-    print(colours)
+    show.legend = F
+    if(input$chr.to.view==0){
+
+      # Show number of aneuploid chromosomes in cell
+      cell.list = c()
+      for(cell in 1:nrow(embryo)){
+        total = 0
+        for(i in 1:31){
+          if(bitwAnd(embryo$isAneuploid[cell], 2^(i-1))==2^(i-1)){
+            total = total + 1
+          }
+        }
+        cell.list = c(cell.list, total)
+      }
+
+      colours = factor(cell.list)
+      show.legend = T
+
+    } else {
+      # just show the state of the chromosome of interest
+      colours = factor(bitwAnd(embryo$isAneuploid, 2^(input$chr.to.view-1)),
+                       levels = c(0, 2^(input$chr.to.view-1)))
+
+    }
 
     plot_ly(x=embryo$x, y=embryo$y, z=embryo$z,
             type="scatter3d",
             mode="markers",
             color=colours,
             colors = c("#00FF00", "#FF0000")) %>%
-      layout(showlegend = FALSE) %>%
+      layout(showlegend = show.legend) %>%
       layout(title = "Click and drag to rotate the chart")
   })
 

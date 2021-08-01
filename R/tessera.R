@@ -143,18 +143,18 @@ count.aneuploid = function(embryo, chromosome){
 #' embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)
 create.embryo = function(n.cells, prop.aneuploids, dispersions){
 
-  if(length(prop.aneuploids)>32){
-    warning("Trying to set aneuploidies for more than 32 chromosomes")
-    return()
+  if(length(prop.aneuploids)>31){
+    warning("Trying to set aneuploidies for more than 31 chromosomes")
+    return(NULL)
   }
 
-  if(length(dispersions)>32){
-    warning("Trying to set dispersions for more than 32 chromosomes")
-    return()
+  if(length(dispersions)>31){
+    warning("Trying to set dispersions for more than 31 chromosomes")
+    return(NULL)
   }
   if(length(dispersions)!=length(prop.aneuploids)){
     warning("Must have the same dimensions for input vectors")
-    return()
+    return(NULL)
   }
 
   embryo = .create.blank.sphere(n.cells)
@@ -274,12 +274,12 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
 take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
   if(index.cell < 1 | index.cell > nrow(embryo)){
     warning(paste("index.cell (", index.cell ,") must be between 1 and", nrow(embryo)))
-    return()
+    return(NULL)
   }
 
   if(chromosome < 1 | chromosome>31){
     warning(paste("Chromosome (", chromosome ,") must be between 1 and 31"))
-    return()
+    return(NULL)
   }
 
   sample.list = embryo[[paste0("d", index.cell)]]

@@ -16,6 +16,11 @@ fluidPage(theme = shinytheme("lumen"),
                              max = 300,
                              step = 1),
 
+                radioButtons(inputId = "aneu.type",
+                             label = "Type:",
+                             choices = c("All chrs", "Per chr"),
+                             selected = "All chrs"),
+
                 numericInput(inputId = "proportion",
                              label = strong("Proportion of aneuploid cells (0-1)"),
                              value = 0.1,
@@ -40,7 +45,7 @@ fluidPage(theme = shinytheme("lumen"),
                 numericInput(inputId = "chr.to.view",
                              label = strong("Chromosome to view"),
                              value = 1,
-                             min= 1,
+                             min= 0,
                              max = 31,
                              step = 1)
 

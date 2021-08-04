@@ -18,8 +18,8 @@ fluidPage(theme = shinytheme("lumen"),
 
                 radioButtons(inputId = "aneu.type",
                              label = "Type:",
-                             choices = c("All chrs", "Per chr"),
-                             selected = "All chrs"),
+                             choices = c("One chr", "All chrs"),
+                             selected = "One chr"),
 
                 numericInput(inputId = "proportion",
                              label = strong("Proportion of aneuploid cells (0-1)"),
@@ -42,15 +42,20 @@ fluidPage(theme = shinytheme("lumen"),
                              max = 20,
                              step = 1),
 
-                numericInput(inputId = "chr.to.view",
-                             label = strong("Chromosome to view"),
-                             value = 1,
-                             min= 0,
-                             max = 31,
-                             step = 1)
+                conditionalPanel(
+                  condition = "input['aneu.type'] == 'All chrs'",
 
+                  numericInput(inputId = "chr.to.view",
+                               label = strong("Chromosome to view"),
+                               value = 1,
+                               min= 0,
+                               max = 31,
+                               step = 1)
+                  ),
 
+                actionButton("new.embryo", "New")
               ),
+
               mainPanel(
                 p("The embryo below contains euploid (green) and aneuploid (red) cells.
                            Use the settings on the left to adjust the proportion of aneuploid
@@ -61,6 +66,6 @@ fluidPage(theme = shinytheme("lumen"),
                 p(""),
 
                 plotlyOutput("biopsyPlot",  width = 500, height = 400),
-                plotOutput(outputId = "iterationSummary", height = "300px")
+                plotlyOutput(outputId = "iterationSummary", height = 300)
               ))
 )

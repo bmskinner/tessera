@@ -11,7 +11,7 @@ take.all.biopsies(embryo, n.cells.per.sample, chromosome)
 
 \item{n.cells.per.sample}{the number of cells to take in each biopsy}
 
-\item{chromosome}{the chromosome to test}
+\item{chromosome}{the chromosome to test, or 0 for all chromosomes}
 }
 \value{
 an integer vector of the number of aneuploid cells in each biopsy

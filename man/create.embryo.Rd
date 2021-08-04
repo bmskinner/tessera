@@ -4,10 +4,12 @@
 \alias{create.embryo}
 \title{Create an embryo}
 \usage{
-create.embryo(n.cells, prop.aneuploids, dispersions)
+create.embryo(n.cells, prop.aneuploids, dispersions, seed = NULL)
 }
 \arguments{
 \item{n.cells}{the number of cells in the embryo}
+
+\item{seed}{the seed for the RNG. Defaults to NULL}
 
 \item{prop.aneuploid}{the proportion vector of aneuploid cells (0-1) per chromosome}
 

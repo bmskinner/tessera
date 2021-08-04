@@ -136,12 +136,13 @@ count.aneuploid = function(embryo, chromosome){
 #' @param n.cells the number of cells in the embryo
 #' @param prop.aneuploid the proportion vector of aneuploid cells (0-1) per chromosome
 #' @param dispersion the dispersion vector of the aneuploid cells (0-1)
+#' @param seed the seed for the RNG. Defaults to NULL
 #'
 #' @return an embryo data frame
 #'
 #' @examples
 #' embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)
-create.embryo = function(n.cells, prop.aneuploids, dispersions){
+create.embryo = function(n.cells, prop.aneuploids, dispersions, seed=NULL){
 
   if(length(prop.aneuploids)>31){
     warning("Trying to set aneuploidies for more than 31 chromosomes")
@@ -156,6 +157,8 @@ create.embryo = function(n.cells, prop.aneuploids, dispersions){
     warning("Must have the same dimensions for input vectors")
     return(NULL)
   }
+
+  set.seed(seed)
 
   embryo = .create.blank.sphere(n.cells)
 
@@ -197,7 +200,7 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
 
   n.cells = nrow(embryo)
 
-  cat("Embryo has", n.cells, "cells\n")
+  # cat("Embryo has", n.cells, "cells\n")
 
   # We must have an integer value of at least one aneuploid cell
   n.aneuploid = ceiling(max(1, n.cells * prop.aneuploid))
@@ -215,7 +218,7 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
   # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
   initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
 
-  cat("Creating", initial.blocks, "initial seeds\n")
+  # cat("Creating", initial.blocks, "initial seeds\n")
 
   # Disperse seeds as much as possible
   while(initial.blocks>0 & n.to.make>0){
@@ -227,7 +230,7 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
     initial.blocks = initial.blocks-1L
   }
 
-  cat("Creating", n.to.make, "supplementary seeds\n")
+  # cat("Creating", n.to.make, "supplementary seeds\n")
 
   # When all dispersed seeds have been added, add the remaining seeds randomly
   while(n.to.make>0){
@@ -242,7 +245,7 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
   # Grow the seeds into neighbouring cells for remaining aneuploid cells
 
   n.to.make = n.aneuploid - n.seeds
-  cat("Placing ", n.to.make, "final aneuploid cells\n")
+  # cat("Placing ", n.to.make, "final aneuploid cells\n")
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
     if(is.aneuploid(embryo, seed, chromosome)) next # skip cells already aneuploid
@@ -277,14 +280,20 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
     return(NULL)
   }
 
-  if(chromosome < 1 | chromosome>31){
-    warning(paste("Chromosome (", chromosome ,") must be between 1 and 31"))
+  if(chromosome < 0 | chromosome>31){
+    warning(paste("Chromosome (", chromosome ,") must be between 0 and 31"))
     return(NULL)
   }
 
   sample.list = embryo[[paste0("d", index.cell)]]
 
   isSampled = embryo[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=n.sampled.cells))
+
+  # count all chromsomes; don't care which chromosome is aneuploid
+  # just is aneuploid or is not aneuploid
+  if(chromosome==0){
+    return(sum(embryo[isSampled,]$isAneuploid>0))
+  }
 
   return(count.aneuploid(embryo[isSampled,], chromosome))
 }
@@ -297,7 +306,7 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #'
 #' @param embryo an embryo as created by \code{create.embryo}
 #' @param n.cells.per.sample the number of cells to take in each biopsy
-#' @param chromosome the chromosome to test
+#' @param chromosome the chromosome to test, or 0 for all chromosomes
 #'
 #' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export
@@ -307,11 +316,12 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #' take.all.biopsies(e, 5, 1)
 take.all.biopsies = function(embryo, n.cells.per.sample, chromosome){
 
-  if(chromosome < 1 | chromosome>31){
-    warning(paste("Chromosome (", chromosome ,") must be between 1 and 31"))
+  if(chromosome < 0 | chromosome>31){
+    warning(paste("Chromosome (", chromosome ,") must be between 0 and 31"))
     return()
   }
 
+  # If just one chromosome sampled
   result = c()
   for(i in 1:nrow(embryo)){ # sample each cell in turn, so we get every cell
     f = take.one.biopsy(embryo, n.cells.per.sample, i, chromosome)

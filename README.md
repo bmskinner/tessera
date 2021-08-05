@@ -17,6 +17,23 @@ library(tessera)
 runTessera()
 ```
 
+## The parameters
+
+- number of cells: the size of the embryo
+- proportion: the proportion of cells in the embryo that are aneuploid. Values between 0 - 1.
+- dispersal: low dispersal means the aneuploid cells are clumped, high means they are scattered
+- number of samples: the number of cells in a single biopsy
+
+- model all chromosomes: if selected, 23 chromosome pairs will be modelled separately, rather than a single
+assessment of whether the cell is aneuploid. This also reveals two new controls.
+- concordance: if concordance is 1, all chromosomes will be aneuploid in the same cells. The lower the concordance,
+the more chance cells will differ in which chromosomes are aneuploid
+- chromosome to view: choose which chromosome to display in the chart, or set as 0 to see the overall number
+of aneuploid chromosomes in each cell.
+
+- New: create a new embryo with the current parameters.
+
+
 ## Compute values yourself
 
 If you want to run simulations computationally, you can create embryos using the `create.embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `take.all.biopsies` function:

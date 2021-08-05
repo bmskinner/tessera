@@ -11,14 +11,20 @@ function(input, output, session){
     sample.int(.Machine$integer.max, size=1)
   })
 
+  observeEvent(input$aneu.type, {
+    if(input$aneu.type=="One chr"){
+      updateNumericInput(session, "chr.to.view", value = 1)
+    }
+  })
+
   calculateData = reactive({
 
     all.chr = input$aneu.type=="All chrs"
 
     print(paste("Seed", seedVals()))
 
-    props = if(all.chr) rep(input$proportion, times=22) else input$proportion
-    disps = if(all.chr) rep(input$dispersal, times=22)  else input$dispersal
+    props = if(all.chr) rep(input$proportion, times=23) else input$proportion
+    disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
 
     create.embryo(n.cells        = input$n.cells,
                   prop.aneuploid = props,
@@ -31,7 +37,7 @@ function(input, output, session){
     embryo = calculateData()
 
     show.legend = F
-    if(input$chr.to.view==0){
+    if(input$aneu.type=="All chrs" & input$chr.to.view==0){
 
       # Show number of aneuploid chromosomes in cell
       cell.list = c()

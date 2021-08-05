@@ -36,7 +36,6 @@ function(input, output, session){
   output$biopsyPlot = renderPlotly({
     embryo = calculateData()
 
-    show.legend = F
     if(input$aneu.type=="All chrs" & input$chr.to.view==0){
 
       # Show number of aneuploid chromosomes in cell
@@ -51,13 +50,14 @@ function(input, output, session){
         cell.list = c(cell.list, total)
       }
 
-      colours = factor(cell.list)
-      show.legend = T
+      colours = cell.list
 
     } else {
+
       # just show the state of the chromosome of interest
-      colours = factor(bitwAnd(embryo$isAneuploid, 2^(input$chr.to.view-1)),
-                       levels = c(0, 2^(input$chr.to.view-1)))
+      colours = factor(as.integer(bitwAnd(embryo$isAneuploid,
+                               2^(input$chr.to.view-1)) == 2^(input$chr.to.view-1)),
+                       levels = c(0, 1))
 
     }
 
@@ -65,9 +65,23 @@ function(input, output, session){
             type="scatter3d",
             mode="markers",
             color=colours,
-            colors = c("#00FF00", "#FF0000")) %>%
-      layout(showlegend = show.legend) %>%
-      layout(title = "Click and drag to rotate the chart")
+            colors = c("#00FF00", "#FF0000"),
+            hoverinfo="none") %>%
+      layout( legend = list(y = 0.8,
+                          yanchor="top") ) %>%
+      colorbar(y = 0.8, yanchor="top", limits = c(0, 23)) %>%
+      add_annotations( text="Number of\naneuploid\nchromosomes\nin cell",
+                       xref="paper", yref="paper",
+                       x=0.95, xanchor="left",
+                       y=1.0, yanchor="top",
+                       legendtitle=TRUE, showarrow=FALSE ) %>%
+      add_annotations( text="Click and drag to rotate the chart",
+                       xref="paper", yref="paper",
+                       x=0.0, xanchor="left",
+                       y=1.0, yanchor="top",
+                       legendtitle=TRUE, showarrow=FALSE ) %>%
+      config(displayModeBar = FALSE)
+
   })
 
   output$iterationSummary = renderPlotly({

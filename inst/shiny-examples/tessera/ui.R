@@ -16,11 +16,6 @@ fluidPage(theme = shinytheme("lumen"),
                              max = 300,
                              step = 1),
 
-                radioButtons(inputId = "aneu.type",
-                             label = "Type:",
-                             choices = c("One chr", "All chrs"),
-                             selected = "One chr"),
-
                 numericInput(inputId = "proportion",
                              label = strong("Proportion of aneuploid cells (0-1)"),
                              value = 0.1,
@@ -42,21 +37,26 @@ fluidPage(theme = shinytheme("lumen"),
                              max = 20,
                              step = 1),
 
+                radioButtons(inputId = "aneu.type",
+                             label = strong("Model all chromosomes?"),
+                             choices = c("One chr", "All chrs"),
+                             selected = "One chr"),
+
                 conditionalPanel(
                   condition = "input['aneu.type'] == 'All chrs'",
 
                   numericInput(inputId = "concordance",
-                               label = strong("Concordance (0-1)"),
+                               label = strong("Concordance between chromosomes (0-1)"),
                                value = 1,
                                min= 0,
                                max = 1,
                                step = 0.01),
 
                   numericInput(inputId = "chr.to.view",
-                               label = strong("Chromosome to view"),
+                               label = strong("Chromosome to view (0 to see all)"),
                                value = 1,
                                min= 0,
-                               max = 31,
+                               max = 23,
                                step = 1)
                   ),
 
@@ -69,7 +69,8 @@ fluidPage(theme = shinytheme("lumen"),
                            cells in the data, as well as their dispersal (low dispersal means they
                            are found mostly in clumps, high dispersal means individual cells are more
                            likely). The blastocyst generated will be shown below, and a histogram
-                  showing all possible biopsies of a given size for that embryo"),
+                  showing all possible biopsies of a given size for that embryo. Click 'New' to create
+                  a new embryo"),
                 p(""),
 
                 plotlyOutput("biopsyPlot",  width = 500, height = 400),

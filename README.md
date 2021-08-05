@@ -39,7 +39,10 @@ of aneuploid chromosomes in each cell.
 If you want to run simulations computationally, you can create embryos using the `create.embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `take.all.biopsies` function:
 
 ```
-e <- create.embryo(100, 0.1, 0.2)
-take.all.biopsies(e, 5)
+e <- create.embryo(n.cells = 100, 
+                   prop.aneuploid = rep(0.1, 23), # vector with proportion for each chromosome
+                   dispersal = rep(0.2, 23),      # vector with dispersal for each chromosome
+                   concordance = 1)
+take.all.biopsies(e, chromosome = 5)
 # Output is a vector of the number of aneuploid cells from all possible biopsies
 ```

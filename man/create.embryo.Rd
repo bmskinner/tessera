@@ -4,10 +4,18 @@
 \alias{create.embryo}
 \title{Create an embryo}
 \usage{
-create.embryo(n.cells, prop.aneuploids, dispersions, seed = NULL)
+create.embryo(
+  n.cells,
+  prop.aneuploids,
+  dispersions,
+  concordance = 1,
+  seed = NULL
+)
 }
 \arguments{
 \item{n.cells}{the number of cells in the embryo}
+
+\item{concordance}{the concordance between aneuploid cells for each chromosome (0-1).}
 
 \item{seed}{the seed for the RNG. Defaults to NULL}
 
@@ -20,7 +28,9 @@ an embryo data frame
 }
 \description{
 A sphere of cells is created with the given proportion of aneuploidies.
-Aneuploid cells are either adjacent or dispersed
+Aneuploid cells are either adjacent or dispersed. The concordance of aneuploid
+cells for each chromosome can be specificed; if fully concordant, a cell aneuploid
+for chr1 will also be aneuploid for chr2 etc.
 }
 \examples{
 embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)

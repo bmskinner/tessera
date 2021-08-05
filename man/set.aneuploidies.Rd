@@ -4,7 +4,7 @@
 \alias{set.aneuploidies}
 \title{Set aneuploidies in an embryo}
 \usage{
-set.aneuploidies(embryo, chromosome, prop.aneuploid, dispersion)
+set.aneuploidies(embryo, chromosome, prop.aneuploid, dispersion, concordance)
 }
 \arguments{
 \item{embryo}{an embryo as created by \code{create.embryo}}
@@ -14,6 +14,8 @@ set.aneuploidies(embryo, chromosome, prop.aneuploid, dispersion)
 \item{prop.aneuploid}{the proportion of aneuploid cells (0-1)}
 
 \item{dispersion}{the dispersion of the aneuploid cells (0-1)}
+
+\item{concordance}{the concordance between aneuploid cells for each chromosome (0-1).}
 }
 \value{
 the embryo with aneuploidies

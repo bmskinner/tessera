@@ -23,6 +23,7 @@ function(input, output, session){
     create.embryo(n.cells        = input$n.cells,
                   prop.aneuploid = props,
                   dispersion     = disps,
+                  concordance    = input$concordance,
                   seed           = seedVals())
   })
 

@@ -9,12 +9,13 @@ is.aneuploid(embryo, cell.index, chromosome)
 \arguments{
 \item{embryo}{the embryo}
 
-\item{cell.index}{the cell to test}
+\item{cell.index}{the cell to test (0 for all cells)}
 
 \item{chromosome}{the chromosome to test}
 }
 \value{
-true if the chromosome is aneuploid, false otherwise
+if cell.index is >0, return true if the chromosome is aneuploid,
+false otherwise. If cell.index is 0, return a boolean vector of all cells.
 }
 \description{
 Test if the given chromosome in the given cell is aneuploid

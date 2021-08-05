@@ -2,7 +2,7 @@
 # library(assertthat)
 
 # The number of cells to be considered neighbours to a given cell
-.N_NEIGHBOURS=6
+.N_NEIGHBOURS = 6
 
 #' Create a sphere of evenly spaced cells
 #'
@@ -86,10 +86,11 @@ set.aneuploid = function(embryo, cell.index, chromosome){
 #' Test if the given chromosome in the given cell is aneuploid
 #'
 #' @param embryo the embryo
-#' @param cell.index the cell to test
+#' @param cell.index the cell to test (0 for all cells)
 #' @param chromosome the chromosome to test
 #'
-#' @return true if the chromosome is aneuploid, false otherwise
+#' @return if cell.index is >0, return true if the chromosome is aneuploid,
+#' false otherwise. If cell.index is 0, return a boolean vector of all cells.
 #' @export
 #'
 #' @examples
@@ -98,6 +99,19 @@ is.aneuploid = function(embryo, cell.index, chromosome){
     warning("Chromosome must be in range 1-31")
     return(F)
   }
+
+  if(cell.index > nrow(embryo)){
+    warning("Cell index must be in range 0-nrow(embryo)")
+    return(F)
+  }
+
+  # Return a vector if all cells requested
+  if(cell.index==0){
+    return(bitwAnd(embryo$isAneuploid,
+                   .bit.value(chromosome)) == .bit.value(chromosome))
+  }
+
+  # Otherwise return just the single cell value
   return(bitwAnd(embryo$isAneuploid[cell.index],
                  .bit.value(chromosome)) == .bit.value(chromosome))
 }
@@ -131,18 +145,21 @@ count.aneuploid = function(embryo, chromosome){
 #' Create an embryo
 #'
 #' A sphere of cells is created with the given proportion of aneuploidies.
-#' Aneuploid cells are either adjacent or dispersed
+#' Aneuploid cells are either adjacent or dispersed. The concordance of aneuploid
+#' cells for each chromosome can be specificed; if fully concordant, a cell aneuploid
+#' for chr1 will also be aneuploid for chr2 etc.
 #'
 #' @param n.cells the number of cells in the embryo
 #' @param prop.aneuploid the proportion vector of aneuploid cells (0-1) per chromosome
 #' @param dispersion the dispersion vector of the aneuploid cells (0-1)
+#' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
 #' @param seed the seed for the RNG. Defaults to NULL
 #'
 #' @return an embryo data frame
 #'
 #' @examples
 #' embryo <- create.embryo(20, c(0.1, 0, 0, 0.4), 0.9)
-create.embryo = function(n.cells, prop.aneuploids, dispersions, seed=NULL){
+create.embryo = function(n.cells, prop.aneuploids, dispersions, concordance=1, seed=NULL){
 
   if(length(prop.aneuploids)>31){
     warning("Trying to set aneuploidies for more than 31 chromosomes")
@@ -158,6 +175,11 @@ create.embryo = function(n.cells, prop.aneuploids, dispersions, seed=NULL){
     return(NULL)
   }
 
+  if(concordance<0 | concordance>1){
+    warning("Concordance must be in the range 0-1")
+    return(NULL)
+  }
+
   set.seed(seed)
 
   embryo = .create.blank.sphere(n.cells)
@@ -166,7 +188,8 @@ create.embryo = function(n.cells, prop.aneuploids, dispersions, seed=NULL){
     embryo = set.aneuploidies(embryo,
                          chr,
                          prop.aneuploids[chr],
-                         dispersions[chr])
+                         dispersions[chr],
+                         concordance)
   }
 
   return(embryo)
@@ -181,12 +204,13 @@ create.embryo = function(n.cells, prop.aneuploids, dispersions, seed=NULL){
 #' @param chromosome the chromosome to set aneuploidies for
 #' @param prop.aneuploid the proportion of aneuploid cells (0-1)
 #' @param dispersion the dispersion of the aneuploid cells (0-1)
+#' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
 #'
 #' @return the embryo with aneuploidies
 #'
 #' @examples
 #' embryo <- set.aneuploidies(embryo, 1, 0.1, 0.9)
-set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
+set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion, concordance){
 
   # Shortcut the easy cases
   if(prop.aneuploid==0) return(embryo)
@@ -199,11 +223,25 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
   }
 
   n.cells = nrow(embryo)
-
   # cat("Embryo has", n.cells, "cells\n")
 
   # We must have an integer value of at least one aneuploid cell
   n.aneuploid = ceiling(max(1, n.cells * prop.aneuploid))
+  # cat("Creating", n.aneuploid, "aneuploid cells for chr", chromosome,"\n")
+
+  # Decide how many cells need to be concordant with the previous
+  # chromosome (if we are above chromosome 1)
+  n.concordant = 0
+  concordant.cells = rep(F, nrow(embryo))
+  if(chromosome>1){
+    prev.chr = chromosome - 1 # to be used when chr>1 only
+    concordant.cells = is.aneuploid(embryo, 0, prev.chr)
+    # cat("Prev chr", prev.chr, "has", length(concordant.cells[concordant.cells==T]), "aneuploid cells\n")
+    n.concordant = length(concordant.cells[concordant.cells==T])*concordance
+    # if there are more aneuploids in the prev chromosome, we can't match all
+    n.concordant = min(n.aneuploid, n.concordant)
+    # cat("Expecting", n.concordant, "concordant cells with chr", prev.chr, "\n")
+  }
 
   # The approach for dispersal is to set seed cells which will
   # grow into separate aneuploid patches. The more dispersion, the more
@@ -218,41 +256,63 @@ set.aneuploidies = function(embryo, chromosome, prop.aneuploid, dispersion){
   # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
   initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
 
-  # cat("Creating", initial.blocks, "initial seeds\n")
+  # cat("Creating up to", initial.blocks, "initial seed positions\n")
+  # cat("Creating", n.to.make, "initial seeds\n")
 
   # Disperse seeds as much as possible
   while(initial.blocks>0 & n.to.make>0){
     seed = sample.int(n.cells, 1)
     if(is.aneuploid(embryo, seed, chromosome)) next
     if(.has.adjacent.aneuploid(embryo, seed, chromosome)) next # spread seeds out
+    if(n.concordant>0 & !concordant.cells[seed]) next # skip non concordant cells
     embryo = set.aneuploid(embryo, seed, chromosome)
     n.to.make = n.to.make-1L
     initial.blocks = initial.blocks-1L
+    n.concordant = max(0, n.concordant - 1L)
   }
 
+  # cat(n.concordant, "concordant cells remaining to place\n")
   # cat("Creating", n.to.make, "supplementary seeds\n")
 
   # When all dispersed seeds have been added, add the remaining seeds randomly
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
     if(is.aneuploid(embryo, seed, chromosome)) next
+    if(n.concordant>0 & !concordant.cells[seed]) next # skip non concordant cells
     embryo = set.aneuploid(embryo, seed, chromosome)
     n.to.make = n.to.make-1L
+    n.concordant = max(0, n.concordant - 1L)
   }
   # assertthat::assert_that(sum(d$isAneuploid)==n.seeds,
   # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isAneuploid)))
 
   # Grow the seeds into neighbouring cells for remaining aneuploid cells
-
+  # cat(n.concordant, "concordant cells remaining to place\n")
   n.to.make = n.aneuploid - n.seeds
-  # cat("Placing ", n.to.make, "final aneuploid cells\n")
+  # cat("Placing", n.to.make, "final aneuploid cells\n")
+
+  # Handle any remaining concordant cells first - the placement rules don't apply
   while(n.to.make>0){
     seed = sample.int(n.cells, 1)
-    if(is.aneuploid(embryo, seed, chromosome)) next # skip cells already aneuploid
-    if(!.has.adjacent.aneuploid(embryo, seed, chromosome)) next # only grow next to existing aneuploid
-    embryo = set.aneuploid(embryo, seed, chromosome)
+    if(n.concordant>0){
+      # cat("Placing ", n.concordant, "concordant aneuploid cells\n")
+      if(!concordant.cells[seed]) next
+      if(is.aneuploid(embryo, seed, chromosome)) next # skip cells already aneuploid
+      embryo = set.aneuploid(embryo, seed, chromosome)
+      n.concordant = max(0, n.concordant - 1L)
+
+    } else {
+      # cat("Placing ", n.to.make, "non-concordant aneuploid cells\n")
+      if(is.aneuploid(embryo, seed, chromosome)) next # skip cells already aneuploid
+      if(!.has.adjacent.aneuploid(embryo, seed, chromosome)) next # only grow next to existing aneuploid
+      embryo = set.aneuploid(embryo, seed, chromosome)
+    }
+
     n.to.make = n.to.make-1
+
   }
+
+  # cat("Finished placing chr", chromosome, "\n")
   # assertthat::assert_that(sum(d$isAneuploid)==n.aneuploid,
   #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", sum(d$isAneuploid)))
   return(embryo)

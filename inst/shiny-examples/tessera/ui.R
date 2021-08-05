@@ -45,6 +45,13 @@ fluidPage(theme = shinytheme("lumen"),
                 conditionalPanel(
                   condition = "input['aneu.type'] == 'All chrs'",
 
+                  numericInput(inputId = "concordance",
+                               label = strong("Concordance (0-1)"),
+                               value = 1,
+                               min= 0,
+                               max = 1,
+                               step = 0.01),
+
                   numericInput(inputId = "chr.to.view",
                                label = strong("Chromosome to view"),
                                value = 1,

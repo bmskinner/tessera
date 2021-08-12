@@ -1,8 +1,10 @@
 # Tessera
 
-This is a tool to visualise the impact of aneuploidy on embryo biopsies in pre-implantation genetic testing.
+[![R version](https://img.shields.io/github/r-package/v/bmskinner/tessera)]()
 
-Tessera is a Shiny app that runs in RStudio. You will need both R and RStudio installed.
+Tessera is a tool to visualise the impact of aneuploidy on embryo biopsies in pre-implantation genetic testing.
+
+It includes a Shiny app that can be run from base R or RStudio.
 
 ## Install
 ```

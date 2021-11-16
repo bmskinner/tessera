@@ -365,8 +365,12 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #' embryo
 #'
 #' @param embryo an embryo as created by \code{create.embryo}
-#' @param n.cells.per.sample the number of cells to take in each biopsy
+#' @param n.cells.per.sample the ideal number of cells to take in each biopsy
 #' @param chromosome the chromosome to test, or 0 for all chromosomes
+#' @param n.cells.fixed true to take the same number of cells in each biopsy, false to
+#' use a distribution model
+#' @param n.cells.sd the standard deviation of the normal distribution used to model
+#' the cell biopsy size
 #'
 #' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export
@@ -374,20 +378,43 @@ take.one.biopsy = function(embryo, n.sampled.cells, index.cell, chromosome){
 #' @examples
 #' e <- create.embryo(100, 0.1, 0.1)
 #' take.all.biopsies(e, 5, 1)
-take.all.biopsies = function(embryo, n.cells.per.sample, chromosome){
+take.all.biopsies = function(embryo, n.cells.per.sample, chromosome, n.cells.fixed=T, n.cells.sd = 1) {
 
-  if(chromosome < 0 | chromosome>31){
+  if(chromosome < 0 | chromosome > 31) {
     warning(paste("Chromosome (", chromosome ,") must be between 0 and 31"))
     return()
   }
 
+
+  #' Model the number of biopsied cells in a sample.
+  #'
+  #' When biopsying cells, we may not get exactly the target number; there
+  #' may be one too many or too few. We model the number of cells to take in
+  #' a biopsy as a normal distribution with a mean around the desired number of
+  #' cells and a standard deviation provided.
+  create.n.cells.function = function(){
+
+    if (n.cells.fixed) {
+      # If we are keeping a fixed number of cells in each biopsy, we don't need a
+      # model
+      return( function(){ n.cells.per.sample })
+    } else {
+      # model the number of biopsied cells as a distribution
+      # Ensure sd is at least 1
+      return( function() { max(1, ceiling(rnorm(1,
+                                         mean = n.cells.per.sample,
+                                         sd = max(1, n.cells.sd))))  })
+    }
+  }
+
+  fn = create.n.cells.function()
+
+
   # If just one chromosome sampled
   result = c()
-  for(i in 1:nrow(embryo)){ # sample each cell in turn, so we get every cell
-    f = take.one.biopsy(embryo, n.cells.per.sample, i, chromosome)
+  for(i in 1:nrow(embryo)) { # sample each cell in turn, so we get every cell
+    f = take.one.biopsy(embryo, fn(), i, chromosome)
     result = c(result, f)
   }
   return(result)
 }
-
-

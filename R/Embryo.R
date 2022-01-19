@@ -23,6 +23,7 @@ setClass("Embryo",
 
 # Constructor is not part of the class definition
 Embryo <- function(nCells, nChrs){
+  .N_NEIGHBOURS = 6
   create.blank.sphere = function(n.points){
     # Make a sphere of evenly spaced points using the Fibonacci spiral
     indices = seq(0, n.points - 1, 1) + 0.5
@@ -53,7 +54,14 @@ Embryo <- function(nCells, nChrs){
       ploidy = ploidy)
 }
 
-# Add a generic method for length to get the number of cells
+# Add a method override for existing generic function length to get the number of cells
 setMethod("length", "Embryo", function(x) { length(x@x) } )
+
+# Make a generic function
+setGeneric(name="getCell",
+           def = function(x, cell) { standardGeneric("getCell")})
+
+# Provide implementation of the function for an Embryo
+setMethod("getCell", signature = "Embryo", function(x, cell){ paste(x@x[cell], x@y[cell], x@z[cell])} )
 
 em = Embryo(10, 5)

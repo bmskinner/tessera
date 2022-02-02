@@ -51,6 +51,66 @@ Embryo <- function(nCells, nChrs){
       ploidy = ploidy)
 }
 
+# Override plot function for an Embryo object
+setMethod("plot", "Embryo", function(x){
+
+  colours = factor(rowSums(x@ploidy)==ncol(x@ploidy*2), levels = c(F, T))
+
+  plotly::plot_ly( type="scatter3d",
+           mode="markers",
+           colors = c("#22FF22", "#222222"),
+           color=colours,
+           marker = list(
+             size = 25,
+             line = list(
+               color = '#111111',
+               width = 1
+             )
+           ),
+           hoverinfo="none") %>%
+    plotly::add_trace(
+      x = x@x,
+      y = x@y,
+      z = x@z,
+      showlegend = F,
+      hoverinfo = 'skip'
+    ) %>%
+    plotly::add_annotations( text="Click and drag to rotate",
+                     xref="paper", yref="paper",
+                     x=0.0, xanchor="left",
+                     y=1.0, yanchor="top",
+                     legendtitle=TRUE, showarrow=FALSE ) %>%
+    plotly::config(displayModeBar = FALSE, scrollZoom = F) %>%
+    plotly::layout(scene = list(
+      xaxis = list(autorange = F,
+                   fixedrange = TRUE,
+                   showgrid = F,
+                   showline = F,
+                   showticklabels = F,
+                   showaxeslabels = F,
+                   title = "",
+                   zeroline = F,
+                   range = list(-1, 1)),
+      yaxis = list(fixedrange = TRUE,
+                   autorange = F,
+                   showgrid = F,
+                   showline = F,
+                   showaxeslabels = F,
+                   showticklabels = F,
+                   title = "",
+                   zeroline = F,
+                   range = list(-1, 1)),
+      zaxis = list(autorange = F,
+                   fixedrange = TRUE,
+                   showgrid = F,
+                   showline = F,
+                   showaxeslabels = F,
+                   showticklabels = F,
+                   zeroline = F,
+                   title = "",
+                   range = list(-1, 1))))
+})
+
 # Add a method override for existing generic function length to get the number of cells
 setMethod("length", "Embryo", function(x) { length(x@x) } )
 
@@ -58,7 +118,9 @@ setMethod("length", "Embryo", function(x) { length(x@x) } )
 setGeneric(name="getCell",
            def = function(x, cell) { standardGeneric("getCell")})
 
+
+
 # Provide implementation of the function for an Embryo
 setMethod("getCell", signature = "Embryo", function(x, cell){ paste(x@x[cell], x@y[cell], x@z[cell])} )
 
-em = Embryo(300, 5)
+em = Embryo(300, 1)

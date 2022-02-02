@@ -371,7 +371,7 @@ setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
   if(chromosome == 0){
     return(sum(embryo@ploidy[isSampled,] != 2))
   }
-  return(sum(embryo[isSampled, chromosome] != 2))
+  return(sum(embryo@ploidy[isSampled, chromosome] != 2))
 })
 
 setGeneric(name="takeAllBiopsies",

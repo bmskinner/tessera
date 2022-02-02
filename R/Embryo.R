@@ -332,9 +332,117 @@ setMethod("length", "Embryo", function(x) { length(x@x) } )
 setGeneric(name="getCell",
            def = function(x, cell) { standardGeneric("getCell")})
 
-
-
 # Provide implementation of the function for an Embryo
 setMethod("getCell", signature = "Embryo", function(x, cell){ paste(x@x[cell], x@y[cell], x@z[cell])} )
 
-em = Embryo(300, 1)
+
+
+setGeneric(name="takeBiopsy",
+           def = function(embryo, ...) { standardGeneric("takeBiopsy")})
+
+#' Take a sample from an embryo
+#'
+#' The cell at the given index is taken,
+#' plus the closest n neighbouring cells where n = n.sampled.cells-1.
+#'
+#' @param embryo an embryo
+#' @param biopsy.size the number of cells to biopsy
+#' @param index.cell the index of the cell to begin biopsying. Must be a value
+#'  between 1 and \code{nrow(embryo)}
+#'  @param chromosome the chromosome to test
+#'
+#' @return the number of aneuploid cells in the biopsy
+#'
+#' @examples
+#' e <- Embryo()
+#' takeBiopsy(e, 5, 1)
+setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
+                                                       index.cell = 1, chromosome = 0){
+  if(index.cell < 1 | index.cell > length(embryo@x)){
+    warning(paste("index.cell (", index.cell ,") must be between 1 and", length(embryo@x)))
+    return(NULL)
+  }
+
+  if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
+    warning(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
+    return(NULL)
+  }
+
+  # Get the distance list for the index cell
+  sample.list = embryo@dists[[paste0("d", index.cell)]]
+
+  # Choose the cells to join the biopsy based on distance
+  isSampled = embryo@dists[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n=biopsy.size))
+
+  # count all chromsomes; don't care which chromosome is aneuploid
+  # just is aneuploid or is not aneuploid
+  if(chromosome == 0){
+    return(sum(embryo@ploidy[isSampled,] != 2))
+  }
+  return(sum(embryo[isSampled, chromosome] != 2))
+})
+
+setGeneric(name="takeAllBiopsies",
+           def = function(embryo, ...) { standardGeneric("takeAllBiopsies")})
+
+#' Find the number of aneuploid cells
+#'
+#' Take all possible biopsies of the given size from the given
+#' embryo
+#'
+#' @param embryo an embryo as created by \code{create.embryo}
+#' @param biopsy.size the ideal number of cells to take in each biopsy
+#' @param chromosome the chromosome to test, or 0 for all chromosomes
+#' @param n.cells.fixed true to take the same number of cells in each biopsy, false to
+#' use a distribution model
+#' @param n.cells.sd the standard deviation of the normal distribution used to model
+#' the cell biopsy size
+#'
+#' @return an integer vector of the number of aneuploid cells in each biopsy
+#' @export
+#'
+#' @examples
+#' e <- create.embryo(100, 0.1, 0.1)
+#' take.all.biopsies(e, 5, 1)
+setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size = 5,
+                                                             chromosome = 0, n.cells.fixed=T, n.cells.sd = 1) {
+
+  if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
+    warning(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
+    return(NULL)
+  }
+
+
+  #' Model the number of biopsied cells in a sample.
+  #'
+  #' When biopsying cells, we may not get exactly the target number; there
+  #' may be one too many or too few. We model the number of cells to take in
+  #' a biopsy as a normal distribution with a mean around the desired number of
+  #' cells and a standard deviation provided.
+  create.n.cells.function = function(){
+
+    if (n.cells.fixed) {
+      # If we are keeping a fixed number of cells in each biopsy, we don't need a
+      # model
+      return( function(){ biopsy.size })
+    } else {
+      # model the number of biopsied cells as a distribution
+      # Ensure sd is at least 1
+      return( function() { max(1, ceiling(rnorm(1,
+                                                mean = biopsy.size,
+                                                sd = max(1, n.cells.sd))))  })
+    }
+  }
+
+  fn = create.n.cells.function()
+
+
+  # If just one chromosome sampled
+  result = c()
+  for(i in 1:nrow(embryo@ploidy)) { # sample each cell in turn, so we get every cell
+    f = takeBiopsy(embryo, biopsy.size =  fn(), index.cell = i, chromosome = chromosome)
+    result = c(result, f)
+  }
+  return(result)
+})
+

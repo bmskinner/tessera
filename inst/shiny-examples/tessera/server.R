@@ -19,75 +19,33 @@ function(input, output, session){
 
   calculateData = reactive({
 
-    all.chr = input$aneu.type=="All chrs"
+    all.chr = input$aneu.type == "All chrs"
 
     print(paste("Seed", seedVals()))
 
     props = if(all.chr) rep(input$proportion, times=23) else input$proportion
     disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
 
-    create.embryo(n.cells        = input$n.cells,
-                  prop.aneuploid = props,
-                  dispersion     = disps,
-                  concordance    = input$concordance,
-                  seed           = seedVals())
+    Embryo(nCells = input$n.cells,
+           nChrs   = 23,
+           prop.aneuploid = props,
+           dispersal = disps,
+           concordance = input$concordance,
+           rng.seed = seedVals())
   })
 
   output$biopsyPlot = renderPlotly({
     embryo = calculateData()
 
-    if(input$aneu.type=="All chrs" & input$chr.to.view==0){
-
-      # Show number of aneuploid chromosomes in cell
-      cell.list = c()
-      for(cell in 1:nrow(embryo)){
-        total = 0
-        for(i in 1:31){
-          if(bitwAnd(embryo$isAneuploid[cell], 2^(i-1))==2^(i-1)){
-            total = total + 1
-          }
-        }
-        cell.list = c(cell.list, total)
-      }
-
-      colours = cell.list
-
-    } else {
-
-      # just show the state of the chromosome of interest
-      colours = factor(as.integer(bitwAnd(embryo$isAneuploid,
-                               2^(input$chr.to.view-1)) == 2^(input$chr.to.view-1)),
-                       levels = c(0, 1))
-
-    }
-
-    plot_ly(x=embryo$x, y=embryo$y, z=embryo$z,
-            type="scatter3d",
-            mode="markers",
-            color=colours,
-            colors = c("#00FF00", "#FF0000"),
-            hoverinfo="none") %>%
-      layout( legend = list(y = 0.8,
-                          yanchor="top") ) %>%
-      colorbar(y = 0.8, yanchor="top", limits = c(0, 23)) %>%
-      add_annotations( text="Number of\naneuploid\nchromosomes\nin cell",
-                       xref="paper", yref="paper",
-                       x=0.95, xanchor="left",
-                       y=1.0, yanchor="top",
-                       legendtitle=TRUE, showarrow=FALSE ) %>%
-      add_annotations( text="Click and drag to rotate the chart",
-                       xref="paper", yref="paper",
-                       x=0.0, xanchor="left",
-                       y=1.0, yanchor="top",
-                       legendtitle=TRUE, showarrow=FALSE ) %>%
-      config(displayModeBar = FALSE)
+    plot(embryo)
 
   })
 
   output$iterationSummary = renderPlotly({
 
     embryo = calculateData()
-    result = take.all.biopsies(embryo, input$n.samples, input$chr.to.view)
+    result = takeAllBiopsies(embryo, biopsy.size = input$n.samples,
+                             chromosome = input$chr.to.view)
 
     n.euploids      = length(result[result==0])
     n.aneuploids    = length(result[result==input$n.samples])

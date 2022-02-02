@@ -328,14 +328,6 @@ setMethod("plot", "Embryo", function(x){
 # Add a method override for existing generic function length to get the number of cells
 setMethod("length", "Embryo", function(x) { length(x@x) } )
 
-# Make a generic function
-setGeneric(name="getCell",
-           def = function(x, cell) { standardGeneric("getCell")})
-
-# Provide implementation of the function for an Embryo
-setMethod("getCell", signature = "Embryo", function(x, cell){ paste(x@x[cell], x@y[cell], x@z[cell])} )
-
-
 
 setGeneric(name="takeBiopsy",
            def = function(embryo, ...) { standardGeneric("takeBiopsy")})
@@ -403,7 +395,7 @@ setGeneric(name="takeAllBiopsies",
 #'
 #' @examples
 #' e <- create.embryo(100, 0.1, 0.1)
-#' take.all.biopsies(e, 5, 1)
+#' takeAllBiopsies(e, 5, 1)
 setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size = 5,
                                                              chromosome = 0, n.cells.fixed=T, n.cells.sd = 1) {
 
@@ -440,7 +432,8 @@ setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size
   # If just one chromosome sampled
   result = c()
   for(i in 1:nrow(embryo@ploidy)) { # sample each cell in turn, so we get every cell
-    f = takeBiopsy(embryo, biopsy.size =  fn(), index.cell = i, chromosome = chromosome)
+    f = takeBiopsy(embryo, biopsy.size =  fn(),
+                   index.cell = i, chromosome = chromosome)
     result = c(result, f)
   }
   return(result)

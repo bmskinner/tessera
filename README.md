@@ -31,19 +31,22 @@ assessment of whether the cell is aneuploid. This also reveals two new controls 
 - concordance: if concordance is 1, all chromosomes will be aneuploid in the same cells. The lower the concordance,
 the more chance cells will differ in which chromosomes are aneuploid. Values between 0 - 1.
 - chromosome to view: choose which chromosome to display in the chart, or set as 0 to see the overall number
-of aneuploid chromosomes in each cell. Values between 0 - 23
+of aneuploid chromosomes in each cell.
 
 ## Compute values yourself
 
-If you want to run simulations computationally, you can create embryos using the `create.embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `take.all.biopsies` function:
+If you want to run simulations computationally, you can create embryos using the `Embryo` function with desired parameters, and count the number of aneuploid cells in all possible biopsies with the `takeAllBiopsies` function:
 
 ```
-e <- create.embryo(n.cells = 100, 
-                   prop.aneuploid = rep(0.1, 23), # vector with proportion for each chromosome
-                   dispersal = rep(0.2, 23),      # vector with dispersal for each chromosome
-                   concordance = 1)
-take.all.biopsies(e, chromosome = 5)
+
+e <- Embryo(nCells = 200, 
+            nChr   = 23,
+            prop.aneuploid = 0.2,
+            dispersal = 0.1,
+            concordance = 1)
+            
+takeAllBiopsies(e, chromosome = 1, biopsy.size = 5)
 # Output is a vector of the number of aneuploid cells from all possible biopsies
 ```
 
-Note that since proportion and dispersal are vectors, you can give each chromosome a different value if you wish.
+Note that since `prop.aneuploid` and `dispersal` are vectors, you can give each chromosome a different value if you wish.

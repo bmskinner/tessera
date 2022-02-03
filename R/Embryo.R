@@ -50,7 +50,7 @@ setClass("Embryo",
 #' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
 #' @param rng.seed the seed for the RNG. Defaults to NULL. Use this to get the same embryo each time
 #'
-#' @return an embryo data frame
+#' @return an Embryo object
 #'
 #' @examples
 #' Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
@@ -75,8 +75,35 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
                    concordance = 1, rng.seed = NULL){
   set.seed(rng.seed)
 
+  if(n.cells <= 1){
+    stop(paste0("Number of cells (", n.cells, ") must be greater than 1"))
+  }
+
+  if(n.chrs < 1){
+    stop(paste0("Number of chromosome pairs (", n.chrs, ") must be greater than 0"))
+  }
+
+  if(any(prop.aneuploid<0) | any(prop.aneuploid > 1)){
+    stop(paste0("prop.aneuploid (", paste(prop.aneuploid, collapse = ", "),
+                ") must be between 0 and 1 inclusive"))
+  }
+
+  if(any(dispersal<0) | any(dispersal > 1)){
+    stop(paste0("dispersal (", paste(dispersal, collapse = ", "),
+                ") must be between 0 and 1 inclusive"))
+  }
+
+  if(concordance < 0 | concordance > 1){
+    stop(paste0("Concordance (", concordance, ") must be between 0 and 1 inclusive"))
+  }
+
   if(n.chrs>1 & length(prop.aneuploid)==1) prop.aneuploid = rep(prop.aneuploid, n.chrs)
   if(n.chrs>1 & length(dispersal)==1) dispersal = rep(dispersal, n.chrs)
+
+  if(n.chrs > 1 & length(prop.aneuploid) != n.chrs){
+    stop(paste0("Length of prop.aneuploid (",length(prop.aneuploid),
+                ") must match the number of chromosomes in n.chrs (", n.chrs, ")"))
+  }
 
 
   .N_NEIGHBOURS = 6
@@ -111,8 +138,7 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
   # @return the modified ploidy table
   set.aneuploid = function(ploidy, cell.index, chromosome){
     if(chromosome < 1 | chromosome>n.chrs) {
-      warning(paste0("Chromosome must be in range 1-", n.chrs))
-      return(ploidy)
+      stop(paste0("Chromosome must be in range 1-", n.chrs))
     }
     ploidy[cell.index, chromosome] = 1 # For now, we just model all aneuploidy as monosomy
     return(ploidy)
@@ -141,13 +167,11 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
   # false otherwise. If cell.index is 0, return a boolean vector of all cells.
   is.aneuploid = function(ploidy, cell.index, chromosome){
     if(chromosome < 1 | chromosome>n.chrs) {
-      warning(paste0("Chromosome must be in range 1-", n.chrs))
-      return(F)
+      stop(paste0("Chromosome must be in range 1-", n.chrs))
     }
 
     if(cell.index > n.cells){
-      warning(paste0("Cell index must be in range 0-", n.cells))
-      return(F)
+      stop(paste0("Cell index must be in range 0-", n.cells))
     }
 
     # cat("Testing aneuploidy of cell", cell.index, "chr", chromosome, "\n")
@@ -311,6 +335,9 @@ setMethod("show", "Embryo", function(object) {
 # Override plot function for an Embryo object
 setMethod("plot", "Embryo", function(x){
 
+  if(!require(magrittr)) stop("Package magrittr is not installed")
+  library(magrittr)
+
   colours = factor(rowSums(x@ploidy)==ncol(x@ploidy*2), levels = c(F, T))
 
   plotly::plot_ly( type="scatter3d",
@@ -395,13 +422,11 @@ setGeneric(name="takeBiopsy",
 setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
                                                        index.cell = 1, chromosome = 0){
   if(index.cell < 1 | index.cell > length(embryo@x)){
-    warning(paste("index.cell (", index.cell ,") must be between 1 and", length(embryo@x)))
-    return(NULL)
+    stop(paste("index.cell (", index.cell ,") must be between 1 and", length(embryo@x)))
   }
 
   if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
-    warning(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
-    return(NULL)
+    stop(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
   }
 
   # Get the distance list for the index cell
@@ -453,8 +478,7 @@ setMethod("takeAllBiopsies", signature = "Embryo",
                    chromosome = 0, biopsy.size.fixed=T, biopsy.size.sd = 1) {
 
   if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
-    warning(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
-    return(NULL)
+    stop(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
   }
 
 

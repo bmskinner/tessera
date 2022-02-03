@@ -6,3 +6,5 @@
 .Rbuildignore
 *.Rproj
 *.rds
+*.Rd
+*.old

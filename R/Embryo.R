@@ -1,4 +1,15 @@
-# S4 class to model an embryo
+#' An S4 class to model an embryo
+#'
+#' @slot x numeric. x coordinates of cells
+#' @slot y numeric.  y coordinates of cells
+#' @slot z numeric.  z coordinates of cells
+#' @slot aneu numeric. fraction of aneuploid cells
+#' @slot disp numeric. fraction of dispersal of cells
+#' @slot dists data.frame. pairwise distances between cells
+#' @slot ploidy data.frame. number of chromosomes per cell
+#'
+#' @return
+#' @export
 setClass("Embryo",
 
          # Define fields
@@ -6,6 +17,8 @@ setClass("Embryo",
            x = "numeric",
            y = "numeric",
            z = "numeric",
+           aneu = "numeric",
+           disp = "numeric",
            dists = "data.frame",
            ploidy = "data.frame"
          ),
@@ -15,25 +28,61 @@ setClass("Embryo",
            x = NA_real_,
            y = NA_real_,
            z = NA_real_,
+           aneu = NA_real_,
+           disp = NA_real_,
            dists = data.frame(),
            ploidy = data.frame()
 
          )
 )
 
-# Constructor is not part of the class definition
-Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.1,
+#' Create an embryo
+#'
+#' A sphere of cells is created with the given proportion of aneuploidies.
+#' Aneuploid cells are either adjacent or dispersed. The concordance of aneuploid
+#' cells for each chromosome can be specificed; if fully concordant, a cell aneuploid
+#' for chr1 will also be aneuploid for chr2 etc.
+#'
+#' @param n.cells the number of cells in the embryo
+#' @param n.chrs the number of chromosome pairs per cell
+#' @param prop.aneuploid the proportion vector of aneuploid cells (0-1) per chromosome
+#' @param dispersal the dispersion vector of the aneuploid cells (0-1)
+#' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
+#' @param rng.seed the seed for the RNG. Defaults to NULL. Use this to get the same embryo each time
+#'
+#' @return an embryo data frame
+#'
+#' @examples
+#' Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
+#' per cell. Aneuploid cells are highly dispersed
+#' embryo <- Embryo(n.cells = 200, n.chrs = 1,  prop.aneuploid = 0.2,
+#'                  dispersal =  0.9)
+#'
+#' Create the embryo above, but using a fixed seed for the random number generator
+#' so the resulting embryo is reproducible.
+#' embryo <- Embryo(n.cells = 200, n.chrs = 1,  prop.aneuploid = 0.2,
+#'                  dispersal =  0.9, rng.seed = 42)
+#'
+#' Create an embryo with 3 pairs of chromosomes per cell, with all chromosome pairs
+#' aneuploid in the same cells.
+#' embryo <- Embryo(n.cells = 200, n.chrs = 3,  prop.aneuploid = 0.2,
+#'                  dispersal =  0.9, concordance = 1)
+#'
+#' As above, but specifying a different aneuploidy level for each chromosome pair.
+#' embryo <- Embryo(n.cells = 200, n.chrs = 3,  prop.aneuploid = c(0.2, 0.1, 0.4),
+#'                  dispersal =  0.9)
+Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 0.1,
                    concordance = 1, rng.seed = NULL){
   set.seed(rng.seed)
 
-  if(nChrs>1 & length(prop.aneuploid)==1) prop.aneuploid = rep(prop.aneuploid, nChrs)
-  if(nChrs>1 & length(dispersal)==1) dispersal = rep(dispersal, nChrs)
+  if(n.chrs>1 & length(prop.aneuploid)==1) prop.aneuploid = rep(prop.aneuploid, n.chrs)
+  if(n.chrs>1 & length(dispersal)==1) dispersal = rep(dispersal, n.chrs)
 
 
   .N_NEIGHBOURS = 6
   # Make a sphere of evenly spaced points using the Fibonacci lattice
-  indices = seq(0, nCells - 1, 1) + 0.5
-  phi = acos(pmin(pmax( 1 - 2*indices/nCells,-1.0),1.0)) # constrain to avoid rounding errors
+  indices = seq(0, n.cells - 1, 1) + 0.5
+  phi = acos(pmin(pmax( 1 - 2*indices/n.cells,-1.0),1.0)) # constrain to avoid rounding errors
   theta = pi * (1 + sqrt(5)) * indices
 
   x = cos(theta)*sin(phi)
@@ -50,22 +99,19 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
     d[[paste0("n", i)]] = dist > 0 & dist <= max(head(sort(dist), n = .N_NEIGHBOURS + 1))
   }
 
-  ploidy = data.frame(matrix(data = 2, nrow = nCells, ncol = nChrs))
-  colnames(ploidy) = paste0("chr", 1:nChrs)
+  ploidy = data.frame(matrix(data = 2, nrow = n.cells, ncol = n.chrs))
+  colnames(ploidy) = paste0("chr", 1:n.chrs)
 
-  #' Set a cell to contain an aneuploid chromosome
-  #'
-  #' @param ploidy the embryo
-  #' @param cell.index the cell to affect
-  #' @param chromosome the chromosome to make aneuploid
-  #'
-  #' @return the modified ploidy table
-  #' @export
-  #'
-  #' @examples
+  # Set a cell to contain an aneuploid chromosome
+  #
+  # @param ploidy the embryo
+  # @param cell.index the cell to affect
+  # @param chromosome the chromosome to make aneuploid
+  #
+  # @return the modified ploidy table
   set.aneuploid = function(ploidy, cell.index, chromosome){
-    if(chromosome < 1 | chromosome>nChrs) {
-      warning(paste0("Chromosome must be in range 1-", nChrs))
+    if(chromosome < 1 | chromosome>n.chrs) {
+      warning(paste0("Chromosome must be in range 1-", n.chrs))
       return(ploidy)
     }
     ploidy[cell.index, chromosome] = 1 # For now, we just model all aneuploidy as monosomy
@@ -85,25 +131,22 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
     return(any(adj.list & isAenu))
   }
 
-  #' Test if the given chromosome in the given cell is aneuploid
-  #'
-  #' @param embryo the embryo
-  #' @param cell.index the cell to test (0 for all cells)
-  #' @param chromosome the chromosome to test
-  #'
-  #' @return if cell.index is >0, return true if the chromosome is aneuploid,
-  #' false otherwise. If cell.index is 0, return a boolean vector of all cells.
-  #' @export
-  #'
-  #' @examples
+  # Test if the given chromosome in the given cell is aneuploid
+  #
+  # @param embryo the embryo
+  # @param cell.index the cell to test (0 for all cells)
+  # @param chromosome the chromosome to test
+  #
+  # @return if cell.index is >0, return true if the chromosome is aneuploid,
+  # false otherwise. If cell.index is 0, return a boolean vector of all cells.
   is.aneuploid = function(ploidy, cell.index, chromosome){
-    if(chromosome < 1 | chromosome>nChrs) {
-      warning(paste0("Chromosome must be in range 1-", nChrs))
+    if(chromosome < 1 | chromosome>n.chrs) {
+      warning(paste0("Chromosome must be in range 1-", n.chrs))
       return(F)
     }
 
-    if(cell.index > nCells){
-      warning(paste0("Cell index must be in range 0-", nCells))
+    if(cell.index > n.cells){
+      warning(paste0("Cell index must be in range 0-", n.cells))
       return(F)
     }
 
@@ -118,21 +161,18 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
     return(ploidy[cell.index, chromosome] != 2)
   }
 
-  #' Set aneuploidies in an embryo
-  #'
-  #' A sphere of cells is created with the given proportion of aneuploidies.
-  #' Aneuploid cells are either adjacent or dispersed
-  #'
-  #' @param ploidy an embryo
-  #' @param chromosome the chromosome to set aneuploidies for
-  #' @param prop.aneuploid the proportion of aneuploid cells (0-1)
-  #' @param dispersion the dispersion of the aneuploid cells (0-1)
-  #' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
-  #'
-  #' @return the embryo with aneuploidies
-  #'
-  #' @examples
-  #' embryo <- set.aneuploidies(embryo, 1, 0.1, 0.9)
+  # Set aneuploidies in an embryo
+  #
+  # A sphere of cells is created with the given proportion of aneuploidies.
+  # Aneuploid cells are either adjacent or dispersed
+  #
+  # @param ploidy an embryo
+  # @param chromosome the chromosome to set aneuploidies for
+  # @param prop.aneuploid the proportion of aneuploid cells (0-1)
+  # @param dispersion the dispersion of the aneuploid cells (0-1)
+  # @param concordance the concordance between aneuploid cells for each chromosome (0-1).
+  #
+  # @return the embryo with aneuploidies
   set.aneuploidies = function(ploidy, chromosome, prop.aneuploid, dispersion, concordance){
 
     # Shortcut the easy cases
@@ -146,7 +186,7 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
     }
 
     # We must have an integer value of at least one aneuploid cell
-    n.aneuploid = ceiling(max(1, nCells * prop.aneuploid))
+    n.aneuploid = ceiling(max(1, n.cells * prop.aneuploid))
     # cat("Creating", n.aneuploid, "aneuploid cells for chr", chromosome,"\n")
 
     # Decide how many cells need to be concordant with the previous
@@ -174,14 +214,14 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
     # We can disperse up to a certain number of initial blocks with
     # no aneuploid neighbours. After this, every cell will have at least
     # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
-    initial.blocks = max(1,floor(nCells/.N_NEIGHBOURS))
+    initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
 
     # cat("Creating up to", initial.blocks, "initial seed positions\n")
     # cat("Creating", n.to.make, "initial seeds\n")
 
     # Disperse seeds as much as possible
     while(initial.blocks>0 & n.to.make>0){
-      seed = sample.int(nCells, 1)
+      seed = sample.int(n.cells, 1)
       if(is.aneuploid(ploidy, seed, chromosome)) next
       # cat("Could make aneuploid seed at ",seed, "\n")
       if(.has.adjacent.aneuploid(d, ploidy, seed, chromosome)) next # spread seeds out
@@ -197,7 +237,7 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
 
     # When all dispersed seeds have been added, add the remaining seeds randomly
     while(n.to.make>0){
-      seed = sample.int(nCells, 1)
+      seed = sample.int(n.cells, 1)
       if(is.aneuploid(ploidy, seed, chromosome)) next
       if(n.concordant>0 & !concordant.cells[seed]) next # skip non concordant cells
       ploidy = set.aneuploid(ploidy, seed, chromosome)
@@ -214,7 +254,7 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
 
     # Handle any remaining concordant cells first - the placement rules don't apply
     while(n.to.make>0){
-      seed = sample.int(nCells, 1)
+      seed = sample.int(n.cells, 1)
       if(n.concordant>0){
         # cat("Placing ", n.concordant, "concordant aneuploid cells\n")
         if(!concordant.cells[seed]) next
@@ -241,7 +281,7 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
 
 
   # Set the aneuploid cells in the ploidy matrix
-  for(chr in 1:nChrs){
+  for(chr in 1:n.chrs){
     ploidy = set.aneuploidies(ploidy,
                               chr,
                               prop.aneuploid[chr],
@@ -252,15 +292,18 @@ Embryo <- function(nCells = 200, nChrs = 1, prop.aneuploid = 0.2, dispersal = 0.
 
   new("Embryo",
       x = d[,1], y = d[,2], z = d[,3],
+      aneu = prop.aneuploid,
+      disp = dispersal,
       dists = d[,-(1:3)],
       ploidy = ploidy)
 }
 
 
-
+# Override show function for an Embryo object
 setMethod("show", "Embryo", function(object) {
   cat("Embryo with ", length(object@x), " cells\n",
-      ncol(object@ploidy), " chromosome pair per cell",
+      ncol(object@ploidy), " chromosome pair per cell\n",
+      "Aneuploidy: ", object@aneu, " dispersal ", object@disp, "\n",
       sep = ""
   )
 })
@@ -329,9 +372,6 @@ setMethod("plot", "Embryo", function(x){
 setMethod("length", "Embryo", function(x) { length(x@x) } )
 
 
-setGeneric(name="takeBiopsy",
-           def = function(embryo, ...) { standardGeneric("takeBiopsy")})
-
 #' Take a sample from an embryo
 #'
 #' The cell at the given index is taken,
@@ -348,6 +388,10 @@ setGeneric(name="takeBiopsy",
 #' @examples
 #' e <- Embryo()
 #' takeBiopsy(e, 5, 1)
+setGeneric(name="takeBiopsy",
+           def = function(embryo, ...) { standardGeneric("takeBiopsy")})
+
+
 setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
                                                        index.cell = 1, chromosome = 0){
   if(index.cell < 1 | index.cell > length(embryo@x)){
@@ -374,30 +418,39 @@ setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
   return(sum(embryo@ploidy[isSampled, chromosome] != 2))
 })
 
-setGeneric(name="takeAllBiopsies",
-           def = function(embryo, ...) { standardGeneric("takeAllBiopsies")})
-
-#' Find the number of aneuploid cells
+#' Take all possible biopsies from an embryo
 #'
-#' Take all possible biopsies of the given size from the given
-#' embryo
+#' Take a biopsy starting from each cell in turn of the given size from the given
+#' embryo. The biopsy size is fixed by default; use the n.cells.fixed to choose biopsy
+#' size with a normal distribution with mean biopsy.size and standard deviation specified
+#' by n.cells.sd
 #'
 #' @param embryo an embryo as created by \code{create.embryo}
 #' @param biopsy.size the ideal number of cells to take in each biopsy
 #' @param chromosome the chromosome to test, or 0 for all chromosomes
-#' @param n.cells.fixed true to take the same number of cells in each biopsy, false to
+#' @param biopsy.size.fixed true to take the same number of cells in each biopsy, false to
 #' use a distribution model
-#' @param n.cells.sd the standard deviation of the normal distribution used to model
-#' the cell biopsy size
+#' @param biopsy.size.sd the standard deviation of the normal distribution used to model
+#' the cell biopsy size if n.cells.fixed == F.
 #'
 #' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export
 #'
 #' @examples
-#' e <- create.embryo(100, 0.1, 0.1)
-#' takeAllBiopsies(e, 5, 1)
-setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size = 5,
-                                                             chromosome = 0, n.cells.fixed=T, n.cells.sd = 1) {
+#' e <- Embryo(100, 1, 0.1, 0.1)
+#'
+#' Biopsy size fixed at 5 cells
+#' takeAllBiopsies(e, biopsy.size = 5, chromosome = 1)
+#'
+#' Biopsy size varies with a mean of 6 and sd of 1.5
+#' takeAllBiopsies(e, biopsy.size = 6, n.cells.fixed = F, n.cells.sd = 1.5)
+setGeneric(name="takeAllBiopsies",
+           def = function(embryo, ...) { standardGeneric("takeAllBiopsies")})
+
+
+setMethod("takeAllBiopsies", signature = "Embryo",
+          function(embryo, biopsy.size = 5,
+                   chromosome = 0, biopsy.size.fixed=T, biopsy.size.sd = 1) {
 
   if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
     warning(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
@@ -413,7 +466,7 @@ setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size
   #' cells and a standard deviation provided.
   create.n.cells.function = function(){
 
-    if (n.cells.fixed) {
+    if (biopsy.size.fixed) {
       # If we are keeping a fixed number of cells in each biopsy, we don't need a
       # model
       return( function(){ biopsy.size })
@@ -422,7 +475,7 @@ setMethod("takeAllBiopsies", signature = "Embryo",  function(embryo, biopsy.size
       # Ensure sd is at least 1
       return( function() { max(1, ceiling(rnorm(1,
                                                 mean = biopsy.size,
-                                                sd = max(1, n.cells.sd))))  })
+                                                sd = max(1, biopsy.size.sd))))  })
     }
   }
 

@@ -39,8 +39,8 @@ If you want to run simulations computationally, you can create embryos using the
 
 ```
 
-e <- Embryo(nCells = 200, 
-            nChr   = 23,
+e <- Embryo(n.cells = 200, 
+            n.chr   = 23,
             prop.aneuploid = 0.2,
             dispersal = 0.1,
             concordance = 1)

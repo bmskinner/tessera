@@ -26,8 +26,8 @@ function(input, output, session){
     props = if(all.chr) rep(input$proportion, times=23) else input$proportion
     disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
 
-    Embryo(nCells = input$n.cells,
-           nChrs   = 23,
+    Embryo(n.cells = input$n.cells,
+           n.chrs   = 23,
            prop.aneuploid = props,
            dispersal = disps,
            concordance = input$concordance,

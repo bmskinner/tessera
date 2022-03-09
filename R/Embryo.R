@@ -198,16 +198,15 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
 
   # Set aneuploidies in an embryo
   #
-  # A sphere of cells is created with the given proportion of aneuploidies.
   # Aneuploid cells are either adjacent or dispersed
   #
-  # @param ploidy an embryo
+  # @param ploidy the ploidy matrix from the embryo
   # @param chromosome the chromosome to set aneuploidies for
   # @param prop.aneuploid the proportion of aneuploid cells (0-1)
   # @param dispersion the dispersion of the aneuploid cells (0-1)
   # @param concordance the concordance between aneuploid cells for each chromosome (0-1).
   #
-  # @return the embryo with aneuploidies
+  # @return the ploidy matrix with aneuploidies
   set.aneuploidies = function(ploidy, chromosome, prop.aneuploid, dispersion, concordance){
 
     # Shortcut the easy cases
@@ -527,3 +526,33 @@ setMethod("takeAllBiopsies", signature = "Embryo",
   return(result)
 })
 
+
+
+#' Find neighbouring cell indexes
+#'
+#' From the given embryo, find the cell indexes that are neighbours of the given
+#' cell. This will return an integer vector of neighbouring cells, excluding the
+#' initially requested cell index.
+#'
+#' @param embryo an embryo as created by \code{create.embryo}
+#' @param cell.index the cell whose neighbours to find; must be an integer between 1 and embryo size
+#'
+#' @return an integer vector of the cell indexes of the neighbouring cells
+#' @export
+#'
+#' @examples
+#' e <- Embryo(100, 1, 0.1, 0.1)
+#' tessera::getNeighbouringCellIndexes(e, cell.index = 1)
+setGeneric(name="getNeighbouringCellIndexes",
+           def = function(embryo, cell.index, ...) { standardGeneric("getNeighbouringCellIndexes")})
+
+
+setMethod("getNeighbouringCellIndexes", signature = "Embryo",
+          function(embryo, cell.index) {
+
+            if(cell.index < 1 | cell.index>nrow(embryo@ploidy)){
+              stop(paste("Cell index (", cell.index ,") must be between 1 and", nrow(embryo@ploidy)))
+            }
+
+            return(which(embryo@dists[[paste0("n", cell.index)]]))
+          })

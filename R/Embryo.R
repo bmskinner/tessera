@@ -72,11 +72,22 @@ setClass("Embryo",
 #' embryo <- Embryo(n.cells = 200, n.chrs = 3,  prop.aneuploid = c(0.2, 0.1, 0.4),
 #'                  dispersal =  0.9)
 Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 0.1,
-                   concordance = 1, rng.seed = NULL){
+                   concordance = 1, embryo.size.fixed=T, embryo.size.sd = 5, rng.seed = NULL){
   set.seed(rng.seed)
+
+  if(embryo.size.sd < 0){
+    stop(paste0("Number of cells sd (", embryo.size.sd, ") must be greater than 0"))
+  }
 
   if(n.cells <= 1){
     stop(paste0("Number of cells (", n.cells, ") must be greater than 1"))
+  }
+
+  # Calculate the number of cells to use if not fixed
+  if(!embryo.size.fixed){
+    n.cells = max(1, ceiling(rnorm(1,
+                                   mean = n.cells,
+                                   sd = embryo.size.sd)))
   }
 
   if(n.chrs < 1){

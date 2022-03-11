@@ -168,6 +168,19 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
     return(any(adj.list & isAenu))
   }
 
+  # Count the neighbouring cells that have an aneuploidy
+  # d - the distance matrix for cells
+  # ploidy - the ploidy matrix for cells and chromosomes
+  # index - the cell to test
+  # chromosome - the chromosome to test
+  # Returns the number of the closest cells that are aneuploid
+  count.adjacent.aneuploid = function(d, ploidy, index, chromosome){
+    adj.list = d[[paste0("n", index)]]
+    isAenu = ploidy[,chromosome]!=2
+
+    return(sum(adj.list & isAenu))
+  }
+
   # Test if the given chromosome in the given cell is aneuploid
   #
   # @param embryo the embryo
@@ -245,26 +258,55 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
     n.seeds = ceiling(max(1, n.aneuploid * dispersion))
     n.to.make = n.seeds
 
-    # We can disperse up to a certain number of initial blocks with
+    # Disperse seeds as much as possible initially
+    # We create a list of possible seed locations, and as each seed is assigned
+    # we remove it and its neighbours
+    # If there are enough seeds required, we will exhaust the possible locations
+    # and finish seeding in the next step
+    # cat("Creating", n.to.make, "seeds\n")
+    possible.initial.seeds = 1:n.cells # vector of indexes we can sample
+    while(n.to.make > 0 & length(possible.initial.seeds)>0){
+
+      # Take the next seed from those available. NOTE: if the vector is length 1,
+      # sample will sample from 1:n, so we need to correct for this
+      seed = ifelse(length(possible.initial.seeds)==1,possible.initial.seeds[1], sample(possible.initial.seeds, 1))
+      if(n.concordant>0 & !concordant.cells[seed]){
+        possible.initial.seeds = possible.initial.seeds[!possible.initial.seeds %in% c(seed)]
+        next # skip non concordant cells
+      }
+
+      if(.has.adjacent.aneuploid(d, ploidy, seed, chromosome)){
+        possible.initial.seeds = possible.initial.seeds[!possible.initial.seeds %in% c(seed)]
+        next # spread seeds out
+      }
+
+      ploidy = set.aneuploid(ploidy, seed, chromosome)
+
+      # Remove seed and its neighbours from the possible seed list
+      possible.initial.seeds = possible.initial.seeds[!possible.initial.seeds %in% c(seed, which(d[[paste0("n", seed)]]))]
+      n.to.make = n.to.make-1L
+      n.concordant = max(0, n.concordant - 1L)
+      # cat("Set seed",seed,"\t", length(possible.initial.seeds), "\tpossible seeds remaining",n.to.make ,"seeds to place\n")
+      # if(length(possible.initial.seeds)<10) cat(paste(possible.initial.seeds, collapse = ", "), "\n")
+    }
+
+    # We can disperse up to a certain number of initial seeds with
     # no aneuploid neighbours. After this, every cell will have at least
     # one aneuploid neighbour. We stop a bit before this to make the maths simpler.
-    initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
-
-    # cat("Creating up to", initial.blocks, "initial seed positions\n")
-    # cat("Creating", n.to.make, "initial seeds\n")
-
-    # Disperse seeds as much as possible
-    while(initial.blocks>0 & n.to.make>0){
-      seed = sample.int(n.cells, 1)
-      if(is.aneuploid(ploidy, seed, chromosome)) next
-      # cat("Could make aneuploid seed at ",seed, "\n")
-      if(.has.adjacent.aneuploid(d, ploidy, seed, chromosome)) next # spread seeds out
-      if(n.concordant>0 & !concordant.cells[seed]) next # skip non concordant cells
-      ploidy = set.aneuploid(ploidy, seed, chromosome)
-      n.to.make = n.to.make-1L
-      initial.blocks = initial.blocks-1L
-      n.concordant = max(0, n.concordant - 1L)
-    }
+    # initial.blocks = max(1,floor(n.cells/.N_NEIGHBOURS))
+    # #
+    # # # Disperse seeds as much as possible
+    # while(initial.blocks>0 & n.to.make>0){
+    #   seed = sample.int(n.cells, 1)
+    #   if(is.aneuploid(ploidy, seed, chromosome)) next
+    #   # cat("Could make aneuploid seed at ",seed, "\n")
+    #   if(.has.adjacent.aneuploid(d, ploidy, seed, chromosome)) next # spread seeds out
+    #   if(n.concordant>0 & !concordant.cells[seed]) next # skip non concordant cells
+    #   ploidy = set.aneuploid(ploidy, seed, chromosome)
+    #   n.to.make = n.to.make-1L
+    #   initial.blocks = initial.blocks-1L
+    #   n.concordant = max(0, n.concordant - 1L)
+    # }
 
     # cat(n.concordant, "concordant cells remaining to place\n")
     # cat("Creating", n.to.make, "supplementary seeds\n")
@@ -278,8 +320,6 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
       n.to.make = n.to.make-1L
       n.concordant = max(0, n.concordant - 1L)
     }
-    # assertthat::assert_that(sum(d$isAneuploid)==n.seeds,
-    # msg = paste("Expected", n.seeds, "seeds, found", sum(d$isAneuploid)))
 
     # Grow the seeds into neighbouring cells for remaining aneuploid cells
     # cat(n.concordant, "concordant cells remaining to place\n")
@@ -297,6 +337,8 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
         n.concordant = max(0, n.concordant - 1L)
 
       } else {
+
+        # Grow from an existing seed.
         # cat("Placing ", n.to.make, "non-concordant aneuploid cells\n")
         if(is.aneuploid(ploidy, seed, chromosome)) next # skip cells already aneuploid
         if(!.has.adjacent.aneuploid(d, ploidy, seed, chromosome)) next # only grow next to existing aneuploid
@@ -308,8 +350,8 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
     }
 
     # cat("Finished placing chr", chromosome, "\n")
-    # assertthat::assert_that(sum(d$isAneuploid)==n.aneuploid,
-    #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", sum(d$isAneuploid)))
+    # assertthat::assert_that(nrow(ploidy[,chromosome]!=2)==n.aneuploid,
+    #                         msg = paste("Expected", n.aneuploid, "aneuploids, found", nrow(ploidy[,chromosome]!=2)))
     return(ploidy)
   }
 

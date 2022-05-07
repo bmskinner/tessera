@@ -2,6 +2,7 @@
 library(shiny)
 library(shinythemes)
 library(plotly)
+library(tessera)
 
 # Define the server
 function(input, output, session){
@@ -11,26 +12,27 @@ function(input, output, session){
     sample.int(.Machine$integer.max, size=1)
   })
 
-  observeEvent(input$aneu.type, {
-    if(input$aneu.type=="One chr"){
-      updateNumericInput(session, "chr.to.view", value = 1)
-    }
-  })
+  # observeEvent(input$aneu.type, {
+  #   if(input$aneu.type=="One chr"){
+  #     updateNumericInput(session, "chr.to.view", value = 1)
+  #   }
+  # })
 
   calculateData = reactive({
 
-    all.chr = input$aneu.type == "All chrs"
+    # all.chr = input$aneu.type == "All chrs"
+    all.chr = T
 
-    print(paste("Seed", seedVals()))
+    # print(paste("Seed", seedVals()))
 
     props = if(all.chr) rep(input$proportion, times=23) else input$proportion
     disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
 
     Embryo(n.cells = input$n.cells,
-           n.chrs   = 23,
+           n.chrs   = 1,
            prop.aneuploid = props,
            dispersal = disps,
-           concordance = input$concordance,
+           concordance = 1,
            rng.seed = seedVals())
   })
 
@@ -45,7 +47,7 @@ function(input, output, session){
 
     embryo = calculateData()
     result = takeAllBiopsies(embryo, biopsy.size = input$n.samples,
-                             chromosome = input$chr.to.view)
+                             chromosome = 1) #input$chr.to.view
 
     n.euploids      = length(result[result==0])
     n.aneuploids    = length(result[result==input$n.samples])

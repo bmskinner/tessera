@@ -73,7 +73,15 @@ fluidPage(theme = shinytheme("lumen"),
                   showing all possible biopsies for the embryo."),
                 p(""),
 
-                plotlyOutput("biopsyPlot",  width = 500, height = 400),
-                plotlyOutput(outputId = "iterationSummary", height = 300)
+                # Embryo
+                plotlyOutput(outputId = "embryo.model",  width = 500, height = 400),
+
+                # Biopsy results
+                plotlyOutput(outputId = "biopsy.histogram", height = 300),
+
+                # Summary of biopsy accuracy
+                plotlyOutput(outputId = "biopsy.accuracy", height = 300)
+
+
               ))
 )

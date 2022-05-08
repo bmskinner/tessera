@@ -7,6 +7,16 @@ library(tessera)
 # Define the server
 function(input, output, session){
 
+  pgdis.classes = factor(c("Euploid", "Low level", "High level", "Aneuploid"),
+                         levels = c("Euploid", "Low level", "High level", "Aneuploid"))
+
+  to.pgdis.class = function(prop.aneuploidy){
+    if(prop.aneuploidy<0.20) return(pgdis.classes[1])
+    if(prop.aneuploidy<0.40) return(pgdis.classes[2])
+    if(prop.aneuploidy<=0.80) return(pgdis.classes[3])
+    return(pgdis.classes[4])
+  }
+
 
   seedVals = eventReactive(input$new.embryo, {
     sample.int(.Machine$integer.max, size=1)
@@ -18,6 +28,7 @@ function(input, output, session){
   #   }
   # })
 
+  # Generate an embryo with the desired parameters and take all possible biopsies
   calculateData = reactive({
 
     # all.chr = input$aneu.type == "All chrs"
@@ -28,26 +39,68 @@ function(input, output, session){
     props = if(all.chr) rep(input$proportion, times=23) else input$proportion
     disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
 
-    Embryo(n.cells = input$n.cells,
+    embryo = Embryo(n.cells = input$n.cells,
            n.chrs   = 1,
            prop.aneuploid = props,
            dispersal = disps,
            concordance = 1,
            rng.seed = seedVals())
+
+    result = takeAllBiopsies(embryo, biopsy.size = input$n.samples,
+                             chromosome = 1) #input$chr.to.view
+
+    biopsy.classes = sapply(result, function(x) to.pgdis.class(x/input$n.samples) )
+
+
+    # embryo.class = to.pgdis.class(input$proportion)
+
+
+    return(list("embryo"   = embryo,
+                "biopsies" = result,
+                "classes"  = biopsy.classes,
+                "true.class"= to.pgdis.class(input$proportion)))
   })
 
-  output$biopsyPlot = renderPlotly({
-    embryo = calculateData()
-
+  # Plot the embryo
+  output$embryo.model = renderPlotly({
+    embryo = calculateData()[['embryo']]
     plot(embryo)
 
   })
 
-  output$iterationSummary = renderPlotly({
+  output$biopsy.accuracy = renderPlotly({
 
-    embryo = calculateData()
-    result = takeAllBiopsies(embryo, biopsy.size = input$n.samples,
-                             chromosome = 1) #input$chr.to.view
+    true.class = calculateData()[['true.class']]
+
+    # Ensure zero values are still on the chart
+    zero.data = data.frame("Class" = pgdis.classes, "Count" = 0)
+
+    classes =  data.frame("Class" = calculateData()[['classes']]) %>%
+      dplyr::group_by(Class) %>%
+      dplyr::summarise(Count = dplyr::n()) %>%
+      dplyr::bind_rows(., zero.data) %>%
+      dplyr::group_by(Class) %>%
+      dplyr::summarise(Count = sum(Count)) %>%
+      dplyr::mutate(Pct = (Count / input$n.cells)*100, Colour = Class==true.class)
+
+    # print(classes)
+    p = plot_ly(x = classes$Class,
+                y = classes$Pct,
+                type="bar",
+                color = classes$Colour,
+                colors = c("#555555", "#009806")) %>%
+      layout(showlegend = F,
+             xaxis = list( title = "Biopsy PGDIS class (embryo's class highlighted)"),
+             yaxis = list( title = "Percentage of biopsies",
+                           range=c(0, 100)))
+    return(p)
+  })
+
+  # Make the histogram
+  output$biopsy.histogram = renderPlotly({
+
+    result = calculateData()[['biopsies']]
+
 
     n.euploids      = length(result[result==0])
     n.aneuploids    = length(result[result==input$n.samples])
@@ -56,25 +109,25 @@ function(input, output, session){
     mosaic.ratio    = (length(result)-n.euploids-n.aneuploids)/length(result)*100
 
     result = data.frame(values=result)
-    result$colour = factor(ifelse(result$values==0, "green",
+    result$colour = factor(ifelse(result$values==0, "#009806",
                            ifelse(result$values==input$n.samples, "red", "orange")),
-                           levels = c("green", "orange", "red"))
+                           levels = c("#009806", "orange", "red"))
 
     p = plot_ly(x = result$values,
             type="histogram",
             color = result$colour,
-            colors = c("green", "orange", "red")) %>%
+            colors = c("#009806", "orange", "red")) %>%
       layout(showlegend = F,
              xaxis = list( title = "Number of aneuploid cells in biopsy",
                            range=c(-0.5,input$n.samples+0.5)),
              yaxis = list( title = "Number of biopsies",
                            range=c(0, input$n.cells))) %>%
-      add_annotations(text=paste0(format(euploid.ratio, nsmall=1, digits = 3),"%\nall euploid"),
+      add_annotations(text=paste0(format(euploid.ratio, nsmall=1, digits = 3),"%\neuploid"),
                       x=0,
                       y=input$n.cells*0.9,
                       align="center",
                       showarrow=F) %>%
-      add_annotations(text=paste0(format(aneuploid.ratio, nsmall=1, digits = 3),"%\nall aneuploid"),
+      add_annotations(text=paste0(format(aneuploid.ratio, nsmall=1, digits = 3),"%\naneuploid"),
                       x=input$n.samples,
                       y=input$n.cells*0.9,
                       align="center",
@@ -95,6 +148,7 @@ function(input, output, session){
                         align="center",
                         showarrow=F)
     }
+
 
 
 

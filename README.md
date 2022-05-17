@@ -14,6 +14,8 @@ devtools::install_github("bmskinner/tessera")
 
 ## Run the web app
 
+The Shiny app is available at [reproduction.essex.ac.uk](reproduction.essex.ac.uk), and is also included in the package for you to run locally if you prefer:
+
 ```
 library(tessera)
 runTessera()

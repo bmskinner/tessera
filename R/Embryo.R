@@ -508,7 +508,10 @@ setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
 #' @param biopsy.size.fixed true to take the same number of cells in each biopsy, false to
 #' use a distribution model
 #' @param biopsy.size.sd the standard deviation of the normal distribution used to model
-#' the cell biopsy size if n.cells.fixed == F.
+#' the cell biopsy size if \code{n.cells.fixed == F}.
+#' @param calc.percent return the percentage of aneuploid cells in the biopsy, instead
+#' of the absolute number. Note, this will use biopsy.size even if \code{biopsy.size.fixed==F}
+#' @param summarise if true, summarise the biopsy data as a tibble of counts rather than a vector
 #'
 #' @return an integer vector of the number of aneuploid cells in each biopsy
 #' @export
@@ -527,7 +530,7 @@ setGeneric(name="takeAllBiopsies",
 
 setMethod("takeAllBiopsies", signature = "Embryo",
           function(embryo, biopsy.size = 5,
-                   chromosome = 0, biopsy.size.fixed=T, biopsy.size.sd = 1) {
+                   chromosome = 0, biopsy.size.fixed=T, biopsy.size.sd = 1, calc.percent = F, summarise = F) {
 
   if(chromosome < 0 | chromosome>ncol(embryo@ploidy)){
     stop(paste("Chromosome (", chromosome ,") must be between 0 and", ncol(embryo@ploidy)))
@@ -565,7 +568,30 @@ setMethod("takeAllBiopsies", signature = "Embryo",
                    index.cell = i, chromosome = chromosome)
     result = c(result, f)
   }
+
+
+  if(calc.percent){
+    result = (result / biopsy.size) * 100
+  }
+
+  if(summarise){
+
+    cnames = c("AneuploidCells" = 'result' )
+
+    if(calc.percent){
+      cnames = c("PctAneuploid" = 'result' )
+    }
+
+    result = as.data.frame(result) %>%
+
+      dplyr::group_by(result) %>%
+      dplyr::rename(!!!cnames) %>%
+      dplyr::summarise(Biopsies = dplyr::n()) %>%
+      dplyr::mutate(PctBiopsies = (Biopsies / sum(Biopsies))*100)
+  }
+
   return(result)
+
 })
 
 

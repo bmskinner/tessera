@@ -306,7 +306,7 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
     # When all dispersed seeds have been added, add the remaining seeds randomly
     while (n.to.make > 0) {
       seed <- sample.int(n.cells, 1)
-      if (is.aneuploid(ploidy, seed, chromosome)) next
+      if (is.aneuploid(ploidy, seed, chromosome, euploidy)) next
       if (n.concordant > 0 & !concordant.cells[seed]) next # skip non concordant cells
       ploidy <- set.aneuploid(ploidy, seed, chromosome)
       n.to.make <- n.to.make - 1L

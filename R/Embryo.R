@@ -247,7 +247,8 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
     }
 
     # We must have an integer value of at least one aneuploid cell
-    n.aneuploid <- ceiling(max(1, n.cells * prop.aneuploid))
+    # Note that using ceiling here will cause off-by-one errors for some doubles
+    n.aneuploid <- round(max(1, n.cells * prop.aneuploid))
     # cat("Creating", n.aneuploid, "aneuploid cells for chr", chromosome,"\n")
 
     # Decide how many cells need to be concordant with the previous
@@ -651,6 +652,7 @@ setMethod("getNeighbouringCellIndexes",
 #' From the given embryo, count the number of aneuploid cells
 #'
 #' @param embryo an embryo as created by \code{Embryo()}
+#' @param chromosome the chromosome to test (0 for all chromosomes)
 #'
 #' @return an integer number of aneuploid cells
 #' @export
@@ -658,12 +660,21 @@ setMethod("getNeighbouringCellIndexes",
 #' @examples
 #' e <- Embryo(100, 1, 0.1, 0.1)
 #' tessera::countAneuploid(e) # 10
-setGeneric(name="countAneuploidCells", def = function(embryo, ...) {standardGeneric("countAneuploidCells")})
+setGeneric(name="countAneuploidCells", def = function(embryo, chr, ...) {standardGeneric("countAneuploidCells")})
 
 setMethod("countAneuploidCells",
   signature = "Embryo",
-  function(embryo) {
+  function(embryo, chromosome = 0) {
+    
+    if (chromosome < 0 | chromosome > ncol(embryo@ploidy)) {
+      stop(paste("Chromosome (", chromosome, ") must be between 0 and", ncol(embryo@ploidy)))
+    }
+    
+    if(chromosome == 0){
     # Check all chromosomes for each cell match euploid value
     length(embryo) - sum(sapply(1:length(embryo), function(i) all(embryo@ploidy[i, ] == embryo@euploidy)))
+    } else {
+      length(embryo) - sum(sapply(1:length(embryo), function(i) embryo@ploidy[i, chr] == embryo@euploidy))
+    }
   }
 )

@@ -1,86 +1,77 @@
 # Tests
 library(testthat)
 
-test_that("isAneuploid is working for all chromosomes", {
-
-  for(cell in 1:100){ # test each cell in turn
-    e = create.embryo(100, 0, 0) # no aneuploidy
-
-    # chrs should not be aneuploid before setting
-    for(i in 1:31){
-      expect_equal(is.aneuploid(e, chromosome=i, cell.index=cell), F)
-    }
-
-    # set all chrs aneuploid
-    for(i in 1:31){
-      e = set.aneuploid(e, chromosome=i, cell.index=cell)
-    }
-
-    # all chrs should now be aneuploid
-    for(i in 1:31){
-      expect_equal(is.aneuploid(e, chromosome=i, cell.index=cell), T)
-    }
-  }
-  # print(e$isAneuploid)
-})
-
-test_that("isAneuploid bit-masking works for all chrs", {
-  e = create.embryo(100, 0, 0) # no aneuploidy
-
-
-  # First check if the bit masking is working directly
-  # Check setting aneuploidy of all chrs in cell 1
+test_that("Embryo does not have aneuploid chromosomes when not specified", {
+  
+  # Assume 31 chromosome pairs. None should be aneuuploid
+  e = Embryo(n.cells = 100, n.chrs = 31, prop.aneuploid = 0, dispersal = 0) 
   for(i in 1:31){
-    e = set.aneuploid(e, chromosome=i, cell.index=1)
+    expect_equal(tessera::countAneuploidCells(e, i), 0)
   }
+  expect_equal(tessera::countAneuploidCells(e), 0)
+  
+})
 
+test_that("Embryo has aneuploid specified chromosomes", {
+
+  # Set each chromosome in turn
   for(i in 1:31){
-    expect_equal(bitwAnd(e$isAneuploid[1], i), i)
+    if(i==1){
+      chrs = c(1, rep(0, 30))
+    }
+    if(i>1 && i<31){
+      chrs = c(rep(0, i-1), 1, rep(0, 31-i))
+    }
+    if(i==31){
+      chrs = c(rep(0, 30), 1)
+    }
+    
+    e = Embryo(n.cells = 100, n.chrs = 31, prop.aneuploid = chrs, dispersal = 0)
+    expect_equal(tessera::countAneuploidCells(e, i), 100)
+  }
+  
+})
+
+test_that("Number of aneuploid cells matches input aneuploidy level", {
+
+  for(i in seq(0, 1, 0.05)){
+    e = Embryo(n.cells = 100, n.chrs = 1, prop.aneuploid = i, dispersal = 0)
+    expect_equal(tessera::countAneuploidCells(e), i*100)
+  }
+  
+})
+
+test_that("RNG seed makes reproducible embryos", {
+
+    # Embryos with the same seed should be strictly identical
+    e = Embryo(n.cells = 100, n.chrs = 1, prop.aneuploid = 0.5, dispersal = 0, rng.seed = 42)
+    e2 = Embryo(n.cells = 100, n.chrs = 1, prop.aneuploid = 0.5, dispersal = 0, rng.seed = 42)
+    expect_identical(e, e2)
+  
+    # Embryos with different seeds should be different
+    e3 =Embryo(n.cells = 100, n.chrs = 1, prop.aneuploid = 0.5, dispersal = 0, rng.seed = 43)
+    expect_false(isTRUE(all.equal(e, e3)))
+})
+
+test_that("Clustered embryos have all aneuploid cells adjacent to another", {
+  
+  has.adjacent.aneuploid <- function(embryo, cell.index, chromosome) {
+    adj.list <- embryo@neighbours[[paste0("n", cell.index)]]
+    isAenu <- embryo@ploidy[, chromosome] != embryo@euploidy
+    return(any(adj.list & isAenu))
   }
 
-})
-
-
-test_that("counting aneuploid chrs", {
-  e = create.embryo(100, 0, 0.1)
-  e = set.aneuploid(e, 1, 1)
-  e = set.aneuploid(e, 2, 1)
-
-  expect_equal(count.aneuploid(e, 1), 2)
-  expect_equal(count.aneuploid(e, 2), 0)
-
-  e = set.aneuploid(e, 3, 1)
-  expect_equal(count.aneuploid(e, 1), 3)
-})
-
-test_that("taking one biopsy", {
-  e = create.embryo(100, c(0), c(0.1))
-  e = set.aneuploid(e, 1, 1)
-  e = set.aneuploid(e, 2, 1)
-
-  # The biopsy here should contain only 2 aneuploid cells for chr1
-  # and no other aneuploidies
-  c = take.one.biopsy(e, 5, 1, 1)
-  expect_equal(c, 2)
-
-  for(i in 2:31){
-    expect_equal(take.one.biopsy(e,
-                                 n.sampled.cells=5,
-                                 index.cell=1,
-                                 chromosome=i),
-                 0)
-  }
-
-})
-
-test_that("embryo created with correct chromosomes", {
-  props = c(0, 0.1, 0.5, 0.4, 0.2)
-  disps = c(0, 0, 0, 0, 0)
-
-  e = create.embryo(100, props, disps)
-
-  for(chr in 1:length(props)){
-    exp = props[chr] * 100
-    expect_equal(count.aneuploid(e, chr), exp)
+  for(aneu in seq(0.05, 0.95, 0.05)){
+    # clustered embryo
+    e = Embryo(n.cells = 100, n.chrs = 1, prop.aneuploid = aneu, dispersal = 0)
+    
+    # Check any aneuploid cells have an aneuploid neighbour
+    for(i in 1:100){
+      if(e@ploidy$chr1[i]!=e@euploidy){
+        expect_true( has.adjacent.aneuploid(e, i, 1))
+      }
+    }
   }
 })
+
+

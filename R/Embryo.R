@@ -642,7 +642,7 @@ setMethod("getNeighbouringCellIndexes",
       stop(paste("Cell index (", cell.index, ") must be between 1 and", nrow(embryo@ploidy)))
     }
 
-    return(which(embryo@dists[[paste0("n", cell.index)]]))
+    return(which(embryo@neighbours[[paste0("n", cell.index)]]))
   }
 )
 

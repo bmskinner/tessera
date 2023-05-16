@@ -3,10 +3,12 @@ library(shiny)
 library(shinythemes)
 library(plotly)
 library(tessera)
+library(ggplot2)
 
 # Define the server
 function(input, output, session){
 
+  # Fixed definitions
   pgdis.classes = factor(c("Euploid", "Low level", "High level", "Aneuploid"),
                          levels = c("Euploid", "Low level", "High level", "Aneuploid"))
 
@@ -18,23 +20,61 @@ function(input, output, session){
   }
 
 
+  # Create and store seed value for model embryo only when button is clicked
   seedVals = eventReactive(input$new.embryo, {
     sample.int(.Machine$integer.max, size=1)
   })
+  
+  
+  # Create and store seeds for embryos in the ranking pool only when button is clicked
+  pool.embryo.seeds <- eventReactive(input$rank.embryos, {
+    sample.int(.Machine$integer.max, size=input$n.pool)
+  })
+  
+  
+  # Create a pool of embryos for ranking
+  calculateRanks = reactive({
+    aneuploidies <- runif(input$n.pool, min = 0, max = 1)
+    
+    # Create an embryo with the given aneuploidy and seed, and take one random biopsy
+    embryos <- mapply(function(a, s){
+      tessera::Embryo(n.cells = 200, n.chrs = 1, prop.aneuploid = a, dispersal = input$dispersal, rng.seed = s)
+    }, a= aneuploidies,  s = pool.embryo.seeds())
+    
+    biopsies <- sapply(embryos, tessera::takeBiopsy, biopsy.size=input$biopsy.size)
 
-  # observeEvent(input$aneu.type, {
-  #   if(input$aneu.type=="One chr"){
-  #     updateNumericInput(session, "chr.to.view", value = 1)
-  #   }
-  # })
+    # Rank the embryos by aneuploidy
+    best.from.biopsy <- which(biopsies %in% sort(biopsies)[1:input$n.transfer])
+    best.from.reality <- which(aneuploidies %in% sort(aneuploidies)[1:input$n.transfer])
+    
+
+    is.real.best = aneuploidies %in% sort(aneuploidies)[1:input$n.transfer]
+    is.biop.best = biopsies %in% sort(biopsies)[1:input$n.transfer]
+    
+    # There may be ties in ranks; in this case, increase the number of transferred embryos
+    is.transferrable = sum(is.biop.best)
+    pct.correct = sum(is.real.best&is.biop.best) / is.transferrable * 100
+    
+    # Calculate the percent of embryos correctly selected for transfer by biopsy
+    # pct.corrrect <- sum(best.from.biopsy %in% best.from.reality) / input$n.transfer * 100
+    
+    list("embryos"=embryos,
+         "is.real.best" = is.real.best,
+         "is.biop.best" = is.biop.best,
+         "best.from.reality" = best.from.reality,
+         "best.from.biopsy" = best.from.biopsy,
+         "aneuploidies"=aneuploidies,
+        "biopsies"=biopsies,
+         "pct.correct"=pct.correct)
+  })
+  
+
+
 
   # Generate an embryo with the desired parameters and take all possible biopsies
   calculateData = reactive({
 
-    # all.chr = input$aneu.type == "All chrs"
     all.chr = T
-
-    # print(paste("Seed", seedVals()))
 
     props = if(all.chr) rep(input$proportion, times=23) else input$proportion
     disps = if(all.chr) rep(input$dispersal, times=23)  else input$dispersal
@@ -51,15 +91,13 @@ function(input, output, session){
 
     biopsy.classes = sapply(result, function(x) to.pgdis.class(x/input$n.samples) )
 
-
-    # embryo.class = to.pgdis.class(input$proportion)
-
-
     return(list("embryo"   = embryo,
                 "biopsies" = result,
                 "classes"  = biopsy.classes,
                 "true.class"= to.pgdis.class(input$proportion)))
   })
+  
+  
 
   # Plot the embryo
   output$embryo.model = renderPlotly({
@@ -68,6 +106,7 @@ function(input, output, session){
 
   })
 
+  # Create plot of accuracies
   output$biopsy.accuracy = renderPlotly({
 
     true.class = calculateData()[['true.class']]
@@ -153,5 +192,53 @@ function(input, output, session){
 
 
     return(p)
+  })
+
+  
+  # Create text for rank results
+  output$pool.data <- renderText(paste(calculateRanks()[['pct.correct']]))
+  
+  # Render the ranking output plot
+  output$pool.aneuplodies <- renderPlot({
+    
+    result = calculateRanks()
+    
+    pct.correct = round(result[['pct.correct']], digits = 2)
+    
+    best.embryo.cutoff = max(result[['aneuploidies']][result[['best.from.reality']]])+0.005
+    
+    best.biopsy.cutoff =  max(result[['biopsies']][result[['best.from.biopsy']]])+0.05
+    
+    colours = dplyr::case_when( result[['is.biop.best']]&result[['is.real.best']] ~ "Correctly transferred",
+                                result[['is.biop.best']] ~ "Wrongly transferred",
+                                result[['is.real.best']] ~ "Wrongly rejected",
+                                T ~ "Correctly rejected")
+    
+    ggplot()+
+      annotate("rect", xmin = -Inf, xmax = best.embryo.cutoff, ymin = -Inf, ymax = best.biopsy.cutoff, fill = 'darkgreen', alpha=0.3) +
+      annotate("rect", xmin = -Inf, xmax = best.embryo.cutoff, ymin = best.biopsy.cutoff, ymax = Inf, fill = 'orange', alpha=0.3) +
+      annotate("rect", xmin = best.embryo.cutoff, xmax = Inf, ymin = -Inf, ymax= best.biopsy.cutoff, fill = 'red', alpha=0.3) +
+      geom_point(aes( x=result[['aneuploidies']],  
+                    y =result[['biopsies']], 
+                    col = colours),
+                 size=3)+
+      geom_vline(xintercept = best.embryo.cutoff, col='black')+
+      geom_hline(yintercept = best.biopsy.cutoff, col="black")+
+      geom_text(aes(x=0, y=input$biopsy.size+1, label="Wrongly rejected", hjust=0))+
+      geom_text(aes(x=1, y=-1, label="Wrongly transferred", hjust=1))+
+      geom_text(aes(x=1, y=input$biopsy.size+1, label="Correctly rejected", hjust=1))+
+      geom_text(aes(x=0, y=-1, label="Correctly transferred", hjust=0))+
+
+      labs(x = "True embryo aneuploidy", y = "Aneuploid cells in biopsy",
+           col="Biopsy selected correcly",
+           title = paste0(pct.correct, "% of the best embryos would be selected for transfer"))+
+      scale_y_continuous(breaks = seq(0, input$biopsy.size, 1))+
+      scale_colour_manual(values = c("Correctly rejected"="darkgrey", 
+                                     "Correctly transferred"="darkgreen", 
+                                     "Wrongly rejected"="orange", 
+                                     "Wrongly transferred"="red"))+
+      theme_bw()+
+      theme(legend.position = "none")
+    
   })
 }

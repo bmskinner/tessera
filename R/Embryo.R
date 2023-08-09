@@ -9,7 +9,7 @@
 #' @slot euploidy numeric. number of chromosomes considered euploid
 #' @slot ploidy data.frame. number of chromosomes per cell
 #'
-#' @return
+#' @return an Embryo object
 #' @export
 setClass("Embryo",
          
@@ -62,6 +62,7 @@ setClass("Embryo",
 #' @param rng.seed the seed for the RNG. Defaults to NULL. Use this to get the same embryo each time
 #'
 #' @return an Embryo object
+#' @export
 #'
 #' @examples
 #' Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
@@ -375,9 +376,6 @@ setMethod("show", "Embryo", function(object) {
 
 # Override plot function for an Embryo object
 setMethod("plot", "Embryo", function(x) {
-  if (!require(magrittr)) stop("Package magrittr is not installed. Install using 'install.packages'")
-  library(magrittr)
-
   colours <- factor(sapply(1:length(x), function(i) all(x@ploidy[i, ] == x@euploidy)),
     levels = c(T, F)
   )
@@ -464,6 +462,7 @@ setMethod("length", "Embryo", function(x) { length(x@x) } )
 #'  @param chromosome the chromosome to test
 #'
 #' @return the number of aneuploid cells in the biopsy
+#' @export
 #'
 #' @examples
 #' e <- Embryo()

@@ -1,7 +1,7 @@
 Package: tessera
 Type: Package
 Title: Model The Effect Of Aneuploidy On Embryo Biopsies
-Version: 0.7.0
+Version: 0.8.0
 Author: Ben Skinner <b.skinner@essex.ac.uk>
 Maintainer: Ben Skinner <b.skinner@essex.ac.uk>
 Description: Generates a virtual embryo and visualises
@@ -9,7 +9,7 @@ Description: Generates a virtual embryo and visualises
 License: GPL3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.1
 Imports:
     shiny,
     shinythemes,

@@ -1,5 +1,4 @@
 # Tests
-library(testthat)
 
 test_that("Embryo does not have aneuploid chromosomes when not specified", {
   

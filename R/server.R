@@ -1,12 +1,11 @@
-# Control the server
-library(shiny)
-library(shinythemes)
-library(plotly)
-library(tessera)
-library(ggplot2)
-
-# Define the server
-function(input, output, session){
+#' Create the tessera server
+#'
+#' @import shiny
+#' @import shinythemes
+#' @import plotly
+#' @import ggplot2
+#' @return the server
+tesseraServer <- function(input, output, session){
 
   # Fixed definitions
   pgdis.classes = factor(c("Euploid", "Low level", "High level", "Aneuploid"),
@@ -21,19 +20,19 @@ function(input, output, session){
 
 
   # Create and store seed value for model embryo only when button is clicked
-  seedVals = eventReactive(input$new.embryo, {
+  seedVals = shiny::eventReactive(input$new.embryo, {
     sample.int(.Machine$integer.max, size=1)
   })
   
   
   # Create and store seeds for embryos in the ranking pool only when button is clicked
-  pool.embryo.seeds <- eventReactive(input$rank.embryos, {
+  pool.embryo.seeds <- shiny::eventReactive(input$rank.embryos, {
     sample.int(.Machine$integer.max, size=input$n.pool)
   })
   
   
   # Create a pool of embryos for ranking
-  calculateRanks = reactive({
+  calculateRanks = shiny::reactive({
     aneuploidies <- runif(input$n.pool, min = 0, max = 1)
     
     # Create an embryo with the given aneuploidy and seed, and take one random biopsy
@@ -100,14 +99,14 @@ function(input, output, session){
   
 
   # Plot the embryo
-  output$embryo.model = renderPlotly({
+  output$embryo.model = plotly::renderPlotly({
     embryo = calculateData()[['embryo']]
     plot(embryo)
 
   })
 
   # Create plot of accuracies
-  output$biopsy.accuracy = renderPlotly({
+  output$biopsy.accuracy = plotly::renderPlotly({
 
     true.class = calculateData()[['true.class']]
 
@@ -136,7 +135,7 @@ function(input, output, session){
   })
 
   # Make the histogram
-  output$biopsy.histogram = renderPlotly({
+  output$biopsy.histogram = plotly::renderPlotly({
 
     result = calculateData()[['biopsies']]
 
@@ -196,10 +195,10 @@ function(input, output, session){
 
   
   # Create text for rank results
-  output$pool.data <- renderText(paste(calculateRanks()[['pct.correct']]))
+  output$pool.data <- shiny::renderText(paste(calculateRanks()[['pct.correct']]))
   
   # Render the ranking output plot
-  output$pool.aneuplodies <- renderPlot({
+  output$pool.aneuplodies <- shiny::renderPlot({
     
     result = calculateRanks()
     
@@ -214,7 +213,7 @@ function(input, output, session){
                                 result[['is.real.best']] ~ "Wrongly rejected",
                                 T ~ "Correctly rejected")
     
-    ggplot()+
+    ggplot2::ggplot()+
       annotate("rect", xmin = -Inf, xmax = best.embryo.cutoff, ymin = -Inf, ymax = best.biopsy.cutoff, fill = 'darkgreen', alpha=0.3) +
       annotate("rect", xmin = -Inf, xmax = best.embryo.cutoff, ymin = best.biopsy.cutoff, ymax = Inf, fill = 'orange', alpha=0.3) +
       annotate("rect", xmin = best.embryo.cutoff, xmax = Inf, ymin = -Inf, ymax= best.biopsy.cutoff, fill = 'red', alpha=0.3) +

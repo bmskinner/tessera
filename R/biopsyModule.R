@@ -82,12 +82,12 @@ biopsyServer <- function(id) {
       zero.data <- data.frame("Class" = pgdis.classes, "Count" = 0)
 
       classes <- data.frame("Class" = calculateData()[["classes"]]) %>%
-        dplyr::group_by(Class) %>%
+        dplyr::group_by(.data$Class) %>%
         dplyr::summarise(Count = dplyr::n()) %>%
-        dplyr::bind_rows(., zero.data) %>%
-        dplyr::group_by(Class) %>%
-        dplyr::summarise(Count = sum(Count)) %>%
-        dplyr::mutate(Pct = (Count / input$n.cells) * 100, Colour = Class == true.class)
+        dplyr::bind_rows(.data$., zero.data) %>%
+        dplyr::group_by(.data$Class) %>%
+        dplyr::summarise(Count = sum(.data$Count)) %>%
+        dplyr::mutate(Pct = (.data$Count / input$n.cells) * 100, Colour = .data$Class == true.class)
 
       # print(classes)
       p <- plot_ly(

@@ -9,14 +9,16 @@ Description: Generates a virtual embryo and visualises
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 Imports:
     dplyr,
     ggplot2,
     methods,
     plotly,
     shiny,
-    shinythemes
+    shinythemes,
+    stats,
+    utils
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

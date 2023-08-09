@@ -18,7 +18,7 @@ rankingServer <- function(id) {
 
     # Create a pool of embryos for ranking
     calculateRanks <- shiny::reactive({
-      aneuploidies <- runif(input$n.pool, min = 0, max = 1)
+      aneuploidies <- stats::runif(input$n.pool, min = 0, max = 1)
 
       # Create an embryo with the given aneuploidy and seed, and take one random biopsy
       embryos <- mapply(function(a, s) {

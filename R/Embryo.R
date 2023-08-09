@@ -64,6 +64,9 @@ setClass(
 #'
 #' @return an Embryo object
 #' @export
+#' 
+#' @importFrom utils head
+#' @importFrom stats rnorm
 #'
 #' @examples
 #' # Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
@@ -507,6 +510,7 @@ setMethod("length", "Embryo", function(x) {
 #' @return the number of aneuploid cells in the biopsy
 #' @export
 #'
+#' @importFrom utils head
 #' @examples
 #' e <- Embryo()
 #' tessera::takeBiopsy(e, 5, 1)
@@ -573,6 +577,8 @@ setMethod(
 #'  \code{summarise = F} and perform aggregation later than to aggregate at this
 #'  stage.
 #' @export
+#' 
+#' @importFrom stats rnorm
 #'
 #' @examples
 #' # Create an embryo with default parameters
@@ -596,6 +602,7 @@ setGeneric("takeAllBiopsies", function(embryo, biopsy.size = 5,
 })
 
 #' @describeIn takeAllBiopsies Take all biopsies from an embryo
+#' @aliases takeAllBiopsies,Embryo
 setMethod(
   "takeAllBiopsies",
   signature(embryo = "Embryo"),
@@ -638,16 +645,6 @@ setMethod(
     result = sapply(1:length(embryo), function(i) takeBiopsy(embryo, biopsy.size = fn(),
                                                              index.cell = i,chromosome = chromosome ))
 
-   #  result <- c()
-   # for (i in 1:nrow(embryo@ploidy)) { # sample each cell in turn, so we get every cell
-   #    f <- takeBiopsy(embryo,
-   #      biopsy.size = fn(),
-   #      index.cell = i, chromosome = chromosome
-   #    )
-   #    result <- c(result, f)
-   #  }
-
-
     if (calc.percent) {
       result <- (result / biopsy.size) * 100
     }
@@ -660,10 +657,10 @@ setMethod(
       }
 
       result <- as.data.frame(result) %>%
-        dplyr::group_by(result) %>%
+        dplyr::group_by(.data$result) %>%
         dplyr::rename(!!!cnames) %>%
         dplyr::summarise(Biopsies = dplyr::n()) %>%
-        dplyr::mutate(PctBiopsies = (Biopsies / sum(Biopsies)) * 100)
+        dplyr::mutate(PctBiopsies = (.data$Biopsies / sum(.data$Biopsies)) * 100)
     }
 
     return(result)

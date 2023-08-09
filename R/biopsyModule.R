@@ -2,6 +2,7 @@
 
 #' Create the biopsy server
 #'
+#' @param id the namespace id
 #' @import shiny
 #' @import shinythemes
 #' @rawNamespace import(plotly, except = "last_plot")
@@ -187,6 +188,7 @@ biopsyServer <- function(id) {
 
 #' Create the biopsy UI
 #'
+#' @param id the namespace id
 #' @return the ui
 #'
 biopsyUI <- function(id) {

@@ -1,7 +1,7 @@
 # Server and UI for ranking module
 
 #' Create the ranking server
-#'
+#' @param id the namespace id
 #' @import shiny
 #' @import shinythemes
 #' @rawNamespace import(plotly, except = "last_plot")
@@ -110,7 +110,7 @@ rankingServer <- function(id) {
 }
 
 #' Create the ranking UI
-#'
+#' @param id the namespace id
 #' @return the ui
 #'
 rankingUI <- function(id) {

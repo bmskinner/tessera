@@ -5,40 +5,41 @@
 #' @slot z numeric.  z coordinates of cells
 #' @slot aneu numeric. fraction of aneuploid cells
 #' @slot disp numeric. fraction of dispersal of cells
+#' @slot neighbours data.frame. the nearest neighbours of each cell
 #' @slot dists data.frame. pairwise distances between cells
 #' @slot euploidy numeric. number of chromosomes considered euploid
 #' @slot ploidy data.frame. number of chromosomes per cell
 #'
 #' @return an Embryo object
 #' @export
-setClass("Embryo",
-         
-         # Define fields
-         representation(
-           x = "numeric",
-           y = "numeric",
-           z = "numeric",
-           aneu = "numeric",
-           disp = "numeric",
-           dists = "data.frame",
-           neighbours = "data.frame",
-           euploidy = "numeric",
-           ploidy = "data.frame"
-         ),
-         
-         # Define defaults
-         prototype(
-           x = NA_real_,
-           y = NA_real_,
-           z = NA_real_,
-           aneu = NA_real_,
-           disp = NA_real_,
-           dists = data.frame(),
-           neighbours = data.frame(),
-           euploidy = NA_real_,
-           ploidy = data.frame()
-           
-         )
+setClass(
+  "Embryo",
+
+  # Define fields
+  representation(
+    x = "numeric",
+    y = "numeric",
+    z = "numeric",
+    aneu = "numeric",
+    disp = "numeric",
+    dists = "data.frame",
+    neighbours = "data.frame",
+    euploidy = "numeric",
+    ploidy = "data.frame"
+  ),
+
+  # Define defaults
+  prototype(
+    x = NA_real_,
+    y = NA_real_,
+    z = NA_real_,
+    aneu = NA_real_,
+    disp = NA_real_,
+    dists = data.frame(),
+    neighbours = data.frame(),
+    euploidy = NA_real_,
+    ploidy = data.frame()
+  )
 )
 
 #' Create an embryo
@@ -55,8 +56,8 @@ setClass("Embryo",
 #' @param concordance the concordance between aneuploid cells for each chromosome (0-1).
 #' @param embryo.size.fixed if true, the embryo is exactly the size in \code{n.cells}. If false, the embryo
 #' size can vary according to \code{embryo.size.sd}.
-#' @param embryo.size.sd the standard deviation of cell number if \code{embryo.size.fixed} is true. 
-#' The actual embryo size will be sampled from a normal distribution with mean of \code{n.cells} and 
+#' @param embryo.size.sd the standard deviation of cell number if \code{embryo.size.fixed} is true.
+#' The actual embryo size will be sampled from a normal distribution with mean of \code{n.cells} and
 #' standard deviation \code{embryo.size.sd}.
 #' @param euploidy the number of copies of a chromosome to consider euploid. For a diploid embryo this should be 2.
 #' @param rng.seed the seed for the RNG. Defaults to NULL. Use this to get the same embryo each time
@@ -65,24 +66,32 @@ setClass("Embryo",
 #' @export
 #'
 #' @examples
-#' Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
-#' per cell. Aneuploid cells are highly dispersed
-#' embryo <- Embryo(n.cells = 200, n.chrs = 1,  prop.aneuploid = 0.2,
-#'                  dispersal =  0.9)
+#' # Create an embryo with 200 cells, 20% aneuploid and a single pair of chromosomes
+#' # per cell. Aneuploid cells are highly dispersed
+#' embryo <- Embryo(
+#'   n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2,
+#'   dispersal = 0.9
+#' )
 #'
-#' Create the embryo above, but using a fixed seed for the random number generator
-#' so the resulting embryo is reproducible.
-#' embryo <- Embryo(n.cells = 200, n.chrs = 1,  prop.aneuploid = 0.2,
-#'                  dispersal =  0.9, rng.seed = 42)
+#' # Create the embryo above, but using a fixed seed for the random number generator
+#' # so the resulting embryo is reproducible.
+#' embryo <- Embryo(
+#'   n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2,
+#'   dispersal = 0.9, rng.seed = 42
+#' )
 #'
-#' Create an embryo with 3 pairs of chromosomes per cell, with all chromosome pairs
-#' aneuploid in the same cells.
-#' embryo <- Embryo(n.cells = 200, n.chrs = 3,  prop.aneuploid = 0.2,
-#'                  dispersal =  0.9, concordance = 1)
+#' # Create an embryo with 3 pairs of chromosomes per cell, with all chromosome pairs
+#' # aneuploid in the same cells.
+#' embryo <- Embryo(
+#'   n.cells = 200, n.chrs = 3, prop.aneuploid = 0.2,
+#'   dispersal = 0.9, concordance = 1
+#' )
 #'
-#' As above, but specifying a different aneuploidy level for each chromosome pair.
-#' embryo <- Embryo(n.cells = 200, n.chrs = 3,  prop.aneuploid = c(0.2, 0.1, 0.4),
-#'                  dispersal =  0.9)
+#' # As above, but specifying a different aneuploidy level for each chromosome pair.
+#' embryo <- Embryo(
+#'   n.cells = 200, n.chrs = 3, prop.aneuploid = c(0.2, 0.1, 0.4),
+#'   dispersal = 0.9
+#' )
 Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 0.1,
                    concordance = 1, embryo.size.fixed = T, embryo.size.sd = 5, euploidy = 2,
                    rng.seed = NULL) {
@@ -352,7 +361,7 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
   }
 
 
-  new("Embryo",
+  methods::new("Embryo",
     x = d[, 1], y = d[, 2], z = d[, 3],
     aneu = prop.aneuploid,
     disp = dispersal,
@@ -364,17 +373,38 @@ Embryo <- function(n.cells = 200, n.chrs = 1, prop.aneuploid = 0.2, dispersal = 
 }
 
 
-# Override show function for an Embryo object
-setMethod("show", "Embryo", function(object) {
+#' Show the contents of an embryo
+#'
+#' Returns a description of the embryo
+#'
+#' @param object the embryo
+#'
+#' @return the number of cells the embryo contains and the input parameters
+#'
+#' @examples
+#' e <- Embryo()
+#' show(e)
+setMethod("show", signature(object = "Embryo"), function(object) {
   cat("Embryo with ", length(object@x), " cells\n",
-      ncol(object@ploidy), " chromosome pairs per cell\n",
-      object@euploidy, " copies of each euploid chromosome per cell\n",
-      "Aneuploidy: ", object@aneu, " dispersal ", object@disp, "\n",
-      sep = ""
+    ncol(object@ploidy), " chromosome pairs per cell\n",
+    object@euploidy, " copies of each euploid chromosome per cell\n",
+    "Aneuploidy: ", object@aneu, " dispersal ", object@disp, "\n",
+    sep = ""
   )
 })
 
-# Override plot function for an Embryo object
+#' Plot an embryo
+#'
+#' Returns a plot of cells in the embryo
+#'
+#' @param x the embryo
+#'
+#' @return a plot of the embryo
+#' @export
+#'
+#' @examples
+#' e <- Embryo()
+#' plot(e)
 setMethod("plot", "Embryo", function(x) {
   colours <- factor(sapply(1:length(x), function(i) all(x@ploidy[i, ] == x@euploidy)),
     levels = c(T, F)
@@ -446,8 +476,21 @@ setMethod("plot", "Embryo", function(x) {
     ))
 })
 
-# Add a method override for existing generic function length to get the number of cells
-setMethod("length", "Embryo", function(x) { length(x@x) } )
+#' Length of the embryo
+#'
+#' Returns the number of cells in the embryo
+#'
+#' @param x the embryo
+#'
+#' @return the number of cells the embryo contains
+#' @export
+#'
+#' @examples
+#' e <- Embryo()
+#' length(e) # 200
+setMethod("length", "Embryo", function(x) {
+  length(x@x)
+})
 
 
 #' Take a sample from an embryo
@@ -459,41 +502,48 @@ setMethod("length", "Embryo", function(x) { length(x@x) } )
 #' @param biopsy.size the number of cells to biopsy
 #' @param index.cell the index of the cell to begin biopsying. Must be a value
 #'  between 1 and \code{nrow(embryo)}
-#'  @param chromosome the chromosome to test
+#' @param chromosome the chromosome to test
 #'
 #' @return the number of aneuploid cells in the biopsy
 #' @export
 #'
 #' @examples
 #' e <- Embryo()
-#' takeBiopsy(e, 5, 1)
-setGeneric(name="takeBiopsy",
-           def = function(embryo, ...) { standardGeneric("takeBiopsy")})
-
-
-setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
-                                                       index.cell = 1, chromosome = 0) {
-  if (index.cell < 1 | index.cell > length(embryo@x)) {
-    stop(paste("index.cell (", index.cell, ") must be between 1 and", length(embryo@x)))
-  }
-
-  if (chromosome < 0 | chromosome > ncol(embryo@ploidy)) {
-    stop(paste("Chromosome (", chromosome, ") must be between 0 and", ncol(embryo@ploidy)))
-  }
-
-  # Get the distance list for the index cell
-  sample.list <- embryo@dists[[paste0("d", index.cell)]]
-
-  # Choose the cells to join the biopsy based on distance
-  isSampled <- embryo@dists[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n = biopsy.size))
-
-  # count all chromsomes; don't care which chromosome is aneuploid
-  # just is aneuploid or is not aneuploid
-  if (chromosome == 0) {
-    return(sum(embryo@ploidy[isSampled, ] != embryo@euploidy))
-  }
-  return(sum(embryo@ploidy[isSampled, chromosome] != embryo@euploidy))
+#' tessera::takeBiopsy(e, 5, 1)
+setGeneric("takeBiopsy", function(embryo, biopsy.size = 5,
+                                  index.cell = 1, chromosome = 0) {
+  standardGeneric("takeBiopsy")
 })
+
+#' @describeIn takeBiopsy Take a biopsy from an embryo
+#' @aliases takeBiopsy,Embryo
+setMethod(
+    "takeBiopsy",
+    signature(embryo = "Embryo"),
+    function(embryo, biopsy.size = 5,
+             index.cell = 1, chromosome = 0) {
+      if (index.cell < 1 | index.cell > length(embryo@x)) {
+        stop(paste("index.cell (", index.cell, ") must be between 1 and", length(embryo@x)))
+      }
+
+      if (chromosome < 0 | chromosome > ncol(embryo@ploidy)) {
+        stop(paste("Chromosome (", chromosome, ") must be between 0 and", ncol(embryo@ploidy)))
+      }
+
+      # Get the distance list for the index cell
+      sample.list <- embryo@dists[[paste0("d", index.cell)]]
+
+      # Choose the cells to join the biopsy based on distance
+      isSampled <- embryo@dists[[paste0("d", index.cell)]] <= max(head(sort(sample.list), n = biopsy.size))
+
+      # count all chromsomes; don't care which chromosome is aneuploid
+      # just is aneuploid or is not aneuploid
+      if (chromosome == 0) {
+        return(sum(embryo@ploidy[isSampled, ] != embryo@euploidy))
+      }
+      return(sum(embryo@ploidy[isSampled, chromosome] != embryo@euploidy))
+    }
+  )
 
 #' Take all possible biopsies from an embryo
 #'
@@ -525,39 +575,44 @@ setMethod("takeBiopsy", signature = "Embryo", function(embryo, biopsy.size = 5,
 #' @export
 #'
 #' @examples
-#' Create an embryo with default parameters
+#' # Create an embryo with default parameters
 #' e <- Embryo()
 #'
-#' Biopsy size fixed at 5 cells
+#' # Biopsy size fixed at 5 cells
 #' takeAllBiopsies(e, biopsy.size = 5, chromosome = 1)
 #'
-#' Biopsy size varies with a mean of 6 and sd of 1.5
-#' takeAllBiopsies(e, biopsy.size = 6, n.cells.fixed = F, n.cells.sd = 1.5)
+#' # Biopsy size varies with a mean of 6 and sd of 1.5
+#' takeAllBiopsies(e, biopsy.size = 6, biopsy.size.fixed = FALSE, biopsy.size.sd = 1.5)
 #'
-#' Calculate percentage aneuploidy in each biopsy instead of absolute number of cells
-#' takeAllBiopsies(e, biopsy.size = 5, calc.percent = T)
+#' # Calculate percentage aneuploidy in each biopsy instead of absolute number of cells
+#' takeAllBiopsies(e, biopsy.size = 5, calc.percent = TRUE)
 #'
-#' Calculate a summary tibble instead of absolute counts
-#' takeAllBiopsies(e, biopsy.size = 5, summarise = T)
-setGeneric(name="takeAllBiopsies",
-           def = function(embryo, ...) { standardGeneric("takeAllBiopsies")})
+#' # Calculate a summary tibble instead of absolute counts
+#' takeAllBiopsies(e, biopsy.size = 5, summarise = TRUE)
+setGeneric("takeAllBiopsies", function(embryo, biopsy.size = 5,
+                                       chromosome = 0, biopsy.size.fixed = T, biopsy.size.sd = 1,
+                                       calc.percent = F, summarise = F) {
+  standardGeneric("takeAllBiopsies")
+})
 
-
-setMethod("takeAllBiopsies",
-  signature = "Embryo",
+#' @describeIn takeAllBiopsies Take all biopsies from an embryo
+setMethod(
+  "takeAllBiopsies",
+  signature(embryo = "Embryo"),
   function(embryo, biopsy.size = 5,
-           chromosome = 0, biopsy.size.fixed = T, biopsy.size.sd = 1, calc.percent = F, summarise = F) {
+           chromosome = 0, biopsy.size.fixed = T, biopsy.size.sd = 1,
+           calc.percent = F, summarise = F) {
     if (chromosome < 0 | chromosome > ncol(embryo@ploidy)) {
       stop(paste("Chromosome (", chromosome, ") must be between 0 and", ncol(embryo@ploidy)))
     }
 
 
-    #' Model the number of biopsied cells in a sample.
+    #' # Model the number of biopsied cells in a sample.
     #'
-    #' When biopsying cells, we may not get exactly the target number; there
-    #' may be one too many or too few. We model the number of cells to take in
-    #' a biopsy as a normal distribution with a mean around the desired number of
-    #' cells and a standard deviation provided.
+    #' # When biopsying cells, we may not get exactly the target number; there
+    #' # may be one too many or too few. We model the number of cells to take in
+    #' # a biopsy as a normal distribution with a mean around the desired number of
+    #' # cells and a standard deviation provided.
     create.n.cells.function <- function() {
       if (biopsy.size.fixed) {
         # If we are keeping a fixed number of cells in each biopsy, we don't need a
@@ -579,16 +634,18 @@ setMethod("takeAllBiopsies",
 
     fn <- create.n.cells.function()
 
+    # Expecting just one chromosome sampled
+    result = sapply(1:length(embryo), function(i) takeBiopsy(embryo, biopsy.size = fn(),
+                                                             index.cell = i,chromosome = chromosome ))
 
-    # If just one chromosome sampled
-    result <- c()
-    for (i in 1:nrow(embryo@ploidy)) { # sample each cell in turn, so we get every cell
-      f <- takeBiopsy(embryo,
-        biopsy.size = fn(),
-        index.cell = i, chromosome = chromosome
-      )
-      result <- c(result, f)
-    }
+   #  result <- c()
+   # for (i in 1:nrow(embryo@ploidy)) { # sample each cell in turn, so we get every cell
+   #    f <- takeBiopsy(embryo,
+   #      biopsy.size = fn(),
+   #      index.cell = i, chromosome = chromosome
+   #    )
+   #    result <- c(result, f)
+   #  }
 
 
     if (calc.percent) {
@@ -613,8 +670,6 @@ setMethod("takeAllBiopsies",
   }
 )
 
-
-
 #' Find neighbouring cell indexes
 #'
 #' From the given embryo, find the cell indexes that are neighbours of the given
@@ -630,15 +685,19 @@ setMethod("takeAllBiopsies",
 #' @examples
 #' e <- Embryo(100, 1, 0.1, 0.1)
 #' tessera::getNeighbouringCellIndexes(e, cell.index = 1)
-setGeneric(name="getNeighbouringCellIndexes",
-           def = function(embryo, cell.index, ...) { standardGeneric("getNeighbouringCellIndexes")})
+setGeneric("getNeighbouringCellIndexes", function(embryo, cell.index) {
+  standardGeneric("getNeighbouringCellIndexes")
+})
 
-
-setMethod("getNeighbouringCellIndexes",
-  signature = "Embryo",
+#' @describeIn getNeighbouringCellIndexes Find neighbouring cell indexes
+#' @aliases getNeighbouringCellIndexes,Embryo
+#' @aliases getNeighbouringCellIndexes,Embryo,numeric
+setMethod(
+  "getNeighbouringCellIndexes",
+  signature(embryo = "Embryo", cell.index = "numeric"),
   function(embryo, cell.index) {
     if (cell.index < 1 | cell.index > nrow(embryo@ploidy)) {
-      stop(paste("Cell index (", cell.index, ") must be between 1 and", nrow(embryo@ploidy)))
+      stop(paste("Cell index (", cell.index, ") must be between 1 and", length(embryo)))
     }
 
     return(which(embryo@neighbours[[paste0("n", cell.index)]]))
@@ -651,29 +710,56 @@ setMethod("getNeighbouringCellIndexes",
 #' From the given embryo, count the number of aneuploid cells
 #'
 #' @param embryo an embryo as created by \code{Embryo()}
-#' @param chromosome the chromosome to test (0 for all chromosomes)
+#' @param chromosome the chromosome pair to test (0 for all chromosomes)
 #'
 #' @return an integer number of aneuploid cells
 #' @export
 #'
 #' @examples
 #' e <- Embryo(100, 1, 0.1, 0.1)
-#' tessera::countAneuploid(e) # 10
-setGeneric(name="countAneuploidCells", def = function(embryo, chr, ...) {standardGeneric("countAneuploidCells")})
+#' tessera::countAneuploidCells(e) # 10
+setGeneric("countAneuploidCells", function(embryo, chromosome = 0) {
+  standardGeneric("countAneuploidCells")
+})
 
+#' @describeIn countAneuploidCells count aneuploid cells in an embryo
+#' @aliases countAneuploidCells,Embryo
 setMethod("countAneuploidCells",
-  signature = "Embryo",
-  function(embryo, chromosome = 0) {
-    
+  signature(embryo = "Embryo", chromosome="ANY"),
+  definition = function(embryo, chromosome = 0) {
     if (chromosome < 0 | chromosome > ncol(embryo@ploidy)) {
       stop(paste("Chromosome (", chromosome, ") must be between 0 and", ncol(embryo@ploidy)))
     }
-    
-    if(chromosome == 0){
-    # Check all chromosomes for each cell match euploid value
-    length(embryo) - sum(sapply(1:length(embryo), function(i) all(embryo@ploidy[i, ] == embryo@euploidy)))
+
+    if (chromosome == 0) {
+      # Check all chromosomes for each cell match euploid value
+      length(embryo) - sum(sapply(1:length(embryo), function(i) all(embryo@ploidy[i, ] == embryo@euploidy)))
     } else {
-      length(embryo) - sum(sapply(1:length(embryo), function(i) embryo@ploidy[i, chr] == embryo@euploidy))
+      length(embryo) - sum(sapply(1:length(embryo), function(i) embryo@ploidy[i, chromosome] == embryo@euploidy))
     }
+  }
+)
+
+
+#' Count the number of chromosome pairs in the an embryo
+#'
+#' @param embryo the embryo
+#'
+#' @return the number of chromosome pairs
+#' @export
+#'
+#' @examples
+#' e <- Embryo()
+#' countChromosomes(e)
+setGeneric("countChromosomes", function(embryo) {
+  standardGeneric("countChromosomes")
+})
+
+#' @describeIn countChromosomes  Count the number of chromosome pairs in the an embryo
+#' @aliases countChromosomes,Embryo
+setMethod("countChromosomes",
+  signature(embryo = "Embryo"),
+  definition = function(embryo) {
+    ncol(embryo@ploidy)
   }
 )

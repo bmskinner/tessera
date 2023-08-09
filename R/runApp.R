@@ -2,7 +2,7 @@
 #'
 #' Launches a webview containing the embryo model
 #' @export
-runTessera <- function(...) {
+runTessera <- function() {
   aboutUi <- mainPanel(
     p("This model visualises the possible tropectoderm biopsies obtained from a blastocyst in Preimplantation Genetic Testing for Aneuploidy (PGT-A) during IVF."),
     p("It is intended to help demonstrate the impact that the proportion and distribution of aneuploid cells can have on the biopsies that are obtained, and show how a single biopsy may not accurately reflect the embryo from which it came."),

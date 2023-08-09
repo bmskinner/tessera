@@ -1,7 +1,6 @@
 #' Run the Tessera Shiny app
 #'
 #' Launches a webview containing the embryo model
-#' @import shinytheme
 #' @export
 runTessera <- function(...) {
   aboutUi <- mainPanel(
